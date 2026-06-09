@@ -108,18 +108,18 @@ body {
   transition: background 0.1s;
 }
 .nikke-item:hover { background: #1a2235; }
-.nikke-item.active { background: #1a2235; border-color: #2d3f5e; font-weight: 500; }
+.nikke-item.active { background: #1a2235; border-color: #2d3f5e; }
 .nikke-item-sub { font-size: 11px; color: #64748b; margin-top: 2px; font-weight: 400; }
 
 /* ── Roster ── */
-.roster-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(175px, 1fr)); gap: 10px; margin-bottom: 1rem; }
+.roster-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin-bottom: 1rem; }
 .nikke-card {
   background: #151c2b; border: 1px solid #1e2535;
   border-radius: 10px; padding: .9rem; position: relative;
 }
-.nikke-name { font-size: 13px; font-weight: 600; margin-bottom: 2px; color: #f1f5f9; }
+.nikke-name { font-size: 13px; font-weight: 600; margin-bottom: 2px; color: #f1f5f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .nikke-meta { font-size: 11px; color: #64748b; margin-bottom: 9px; }
-.gear-dots { display: flex; gap: 5px; }
+.gear-dots { display: flex; gap: 5px; margin-top: 8px; }
 .dot { width: 10px; height: 10px; border-radius: 50%; border: 1px solid #2d3f5e; background: #1a2235; }
 .dot.done   { background: #22c55e; border-color: #22c55e; }
 .dot.partial { background: #f59e0b; border-color: #f59e0b; }
@@ -372,7 +372,6 @@ details[open] > .verdict-title::before { transform: rotate(90deg); }
 
   <div class="tabs">
     <button class="tab active" onclick="switchTab('overview',event)">Overview</button>
-    <button class="tab" onclick="switchTab('roster',event)">Roster</button>
     <button class="tab" onclick="switchTab('gear',event)">Gear Tracker</button>
     <button class="tab" onclick="switchTab('priority',event)">Line Priorities</button>
     <button class="tab" onclick="switchTab('raids',event)">Solo Raids</button>
@@ -615,6 +614,98 @@ const ALL_LINES = [
 // Stats that are always trash — never worth keeping
 const ALWAYS_TRASH = new Set(['DEF']);
 
+// Weapon types: SR=Sniper, RL=Rocket Launcher, AR=Assault Rifle, SMG=Submachine Gun, SG=Shotgun, MG=Minigun
+const NIKKE_WEAPON = {
+  '2B':'SR','A2':'RL','Ada Wong':'SMG','Ade':'SMG','Ade: Agent Bunny':'SMG','Admi':'SMG',
+  'Alice':'SR','Alice: Wonderland Bunny':'RL','Anchor':'SMG','Anchor: Innocent Maid':'SMG',
+  'Anis':'RL','Anis: Sparkling Summer':'RL','Anis: Star':'RL','Anne: Miracle Fairy':'AR',
+  'Arcana':'SMG','Arcana: Fortune Mate':'SMG','Aria':'SR','Asuka Shikinami Langley':'RL',
+  'Asuka Shikinami Langley: Wille':'RL','Avistar':'AR','Bay':'SG','Bay (Treasure)':'SG',
+  'Belorta':'AR','Biscuit':'RL','Blanc':'AR','Bready':'SG','Brid':'SR','Brid: Silent Track':'SR',
+  'Centi':'AR','Centi (Treasure)':'AR','Chime':'SMG','Chisato Nishikigi':'AR',
+  'Cinderella':'RL','Claire Redfield':'AR','Clay':'AR','Cocoa':'SG','Crow':'AR',
+  'Crown':'MG','Crust':'AR','D':'SMG','D: Killer Wife':'SMG','Delta':'AR',
+  'Delta: Ninja Thief':'AR','Diesel':'MG','Diesel (Treasure)':'MG','Diesel: Winter Sweets':'MG',
+  'Dolla':'SMG','Dorothy':'SMG','Dorothy: Serendipity':'SR','Drake':'AR','Drake (Treasure)':'AR',
+  'E.H.':'SR','Ein':'SR','Elegg':'RL','Elegg: Boom and Shock':'RL',
+  'Emilia':'RL','Emma':'AR','Emma: Tactical Upgrade':'AR','Epinel':'AR','Ether':'SMG',
+  'Eunhwa':'SR','Eunhwa: Tactical Upgrade':'SR','Eve':'MG','Exia':'AR','Exia (Treasure)':'AR',
+  'Flora':'AR','Folkwang':'AR','Frima':'SMG','Frima (Treasure)':'SMG',
+  'Grave':'SG','Guillotine':'MG','Guillotine: Winter Slayer':'MG','Guilty':'AR',
+  'Harran':'SR','Helm':'SR','Helm (Treasure)':'SR','Helm: Aquamarine':'SR','Himeno':'SMG',
+  'Isabel':'AR','Jackal':'RL','Jill Valentine':'SMG','Julia':'MG','Julia (Treasure)':'MG',
+  'K':'SMG','Kilo':'SG','Kurumi':'SMG','Label':'SMG','Laplace':'RL','Laplace (Treasure)':'RL',
+  'Leona':'SG','Liberalio':'SR','Lily':'AR','Liter':'AR','Little Mermaid (Siren)':'SR',
+  'Ludmilla':'SG','Ludmilla: Winter Owner':'SG','Maiden':'SR','Maiden: Ice Rose':'SR',
+  'Makima':'AR','Mana':'AR','Marciana':'AR','Mari Makinami Illustrious':'SR',
+  'Mary':'SMG','Mary: Bay Goddess':'SMG','Mast':'SMG','Mast: Romantic Maid':'SMG',
+  'Maxwell':'SR','Mica':'SMG','Mica: Snow Buddy':'SMG','Mihara':'SR','Mihara: Bonding Chain':'SR',
+  'Milk':'SR','Milk (Treasure)':'SR','Milk: Blooming Bunny':'SR','Mint':'AR',
+  'Miranda':'SMG','Miranda (Treasure)':'SMG','Misato Katsuragi':'RL','Modernia':'MG',
+  'Moran':'SG','Moran (Treasure)':'SG','Mori':'AR','N102':'SMG','Naga':'SMG',
+  'Nayuta':'SMG','Neon':'AR','Neon: Blue Ocean':'AR','Neon: Vision Eye':'AR',
+  'Nero':'SG','Neve':'SR','Nihilister':'MG','Noah':'AR','Noir':'SR','Noise':'RL',
+  'Novel':'RL','Pascal':'RL','Pepper':'SMG','Phantom':'AR','Poli':'SG','Poli (Treasure)':'SG',
+  'Power':'MG','Privaty':'AR','Privaty (Treasure)':'AR','Privaty: Unkind Maid':'AR',
+  'Product 08':'SMG','Product 12':'AR','Product 23':'AR','Quency':'AR',
+  'Quency: Escape Queen':'AR','Quiry':'SR','Ram':'AR','Rapi':'AR','Rapi: Red Hood':'SR',
+  'Rapunzel':'RL','Rapunzel: Pure Grace':'RL','Raven':'SR','Red Hood':'SR',
+  'Rei':'SMG','Rei Ayanami':'RL','Rei Ayanami (Tentative Name)':'RL','Rem':'AR',
+  'Rosanna':'SG','Rosanna: Chic Ocean':'SG','Rouge':'SR','Rumani':'AR','Rupee':'AR',
+  'Rupee: Winter Shopper':'RL','Sakura':'SG','Sakura Suzuhara':'SMG',
+  'Sakura: Bloom in Summer':'SG','Scarlet':'SR','Scarlet: Black Shadow':'SMG',
+  'Signal':'AR','Sin':'AR','Snow Crane':'SG','Snow White':'SR',
+  'Snow White: Heavy Arms':'SR','Snow White: Innocent Days':'SR',
+  'Soda':'SG','Soda: Twinkling Bunny':'SG','Soldier EG':'AR','Soldier FA':'AR',
+  'Soldier OW':'AR','Soline':'AR','Soline: Frost Ticket':'AR','Sora':'SMG',
+  'Sugar':'RL','Takina Inoue':'AR','Tia':'RL','Tove':'SMG','Tove (Treasure)':'SMG',
+  'Trina':'AR','Trony':'AR','Velvet':'SR','Vesti':'SR','Vesti: Tactical Upgrade':'SR',
+  'Viper':'SG','Viper (Treasure)':'SG','Volume':'SMG','Yan':'SR','Yulha':'RL',
+  'Yuni':'AR','Zwei':'RL','Zwei (Treasure)':'RL',
+  'iDoll Flower':'AR','iDoll Ocean':'AR','iDoll Sun':'AR',
+};
+
+// Damage weight multipliers for each stat, by weapon type
+// These approximate how much 1% of each stat translates to effective DPS gain
+// Base weights (weapon-independent):
+//   ATK = 1.0, Elemental = 1.0 (direct multipliers)
+//   Crit Rate = 0.5 (depends on existing CD, ~50% CD average → 0.5)
+//   Crit Damage = 0.35 (depends on existing CR, ~30-35% CR average → 0.35)
+//   Hit Rate = 0.2 (niche, helps some kits)
+//   DEF = 0 (always trash)
+// Weapon-specific adjustments:
+//   Max Ammo: SR/RL (low ammo, long reload) = 0.15, AR = 0.10, SMG/MG = 0.05, SG = 0.12
+//   Charge Speed: SR/RL = 0.6, others = 0 (no charge mechanic)
+//   Charge Damage: SR/RL = 0.5, others = 0
+
+const STAT_DMG_WEIGHT_BASE = {
+  'ATK': 1.0,
+  'Elemental Damage': 1.0,
+  'Critical Rate': 0.5,
+  'Critical Damage': 0.35,
+  'Hit Rate': 0.2,
+  'Max Ammo': 0.10,
+  'Charge Speed': 0,
+  'Charge Damage': 0,
+  'DEF': 0,
+};
+
+const STAT_DMG_WEIGHT_WEAPON = {
+  'SR':  { 'Max Ammo': 0.15, 'Charge Speed': 0.6, 'Charge Damage': 0.5 },
+  'RL':  { 'Max Ammo': 0.15, 'Charge Speed': 0.6, 'Charge Damage': 0.5 },
+  'AR':  { 'Max Ammo': 0.10 },
+  'SMG': { 'Max Ammo': 0.05 },
+  'MG':  { 'Max Ammo': 0.05 },
+  'SG':  { 'Max Ammo': 0.12 },
+};
+
+function getStatDmgWeight(stat, nikkeName) {
+  const weapon = NIKKE_WEAPON[nikkeName] || 'AR';
+  const weaponOverrides = STAT_DMG_WEIGHT_WEAPON[weapon] || {};
+  if (weaponOverrides[stat] !== undefined) return weaponOverrides[stat];
+  return STAT_DMG_WEIGHT_BASE[stat] || 0;
+}
+
 // Stats whose values are expressed as percentages
 const IS_PCT = new Set([
   'ATK', 'Elemental Damage', 'Charge Speed', 'Charge Damage',
@@ -663,6 +754,109 @@ const STAT_BASE_CHANCE = {
   'Charge Speed': 12, 'Charge Damage': 12, 'Critical Rate': 12,
   'Critical Damage': 10, 'Hit Rate': 12, 'DEF': 10,
 };
+
+// Element icon URLs from Prydwen CDN
+const ELEMENT_ICON = {
+  'Fire': 'https://cdn.prydwen.gg/images/nikke/icons/fire_bg.webp',
+  'Water': 'https://cdn.prydwen.gg/images/nikke/icons/water_bg.webp',
+  'Wind': 'https://cdn.prydwen.gg/images/nikke/icons/wind_bg.webp',
+  'Electric': 'https://cdn.prydwen.gg/images/nikke/icons/ele_bg.webp',
+  'Iron': 'https://cdn.prydwen.gg/images/nikke/icons/iron_bg.webp',
+};
+
+function elemIcon(element) {
+  const url = ELEMENT_ICON[element];
+  return url ? `<img src="${url}" alt="${element}" style="width:20px;height:20px;vertical-align:middle;border-radius:3px;object-fit:contain">` : '';
+}
+
+// Nikke portrait icon from Prydwen CDN
+// Prydwen uses inconsistent slug patterns for skins, so we map known names to their actual slugs
+const NIKKE_SLUG_OVERRIDES = {
+  'Anis: Sparkling Summer': 'sparkling-summer-anis',
+  'Neon: Blue Ocean': 'blue-ocean-neon',
+  'Helm: Aquamarine': 'aqua-marine-helm',
+  'Snow White: Innocent Days': 'innocent-dayss-snow-white',
+  'Rupee: Winter Shopper': 'winter-shopper-rupee',
+  'Mary: Bay Goddess': 'bay-goddess-mary',
+  'Anne: Miracle Fairy': 'miracle-fairy-anne',
+  'Alice: Wonderland Bunny': 'alice-wonderland-bunny',
+  'Anchor: Innocent Maid': 'anchor-innocent-maid',
+  'Anis: Star': 'anis-star',
+  'Ade: Agent Bunny': 'ade-agent-bunny',
+  'Arcana: Fortune Mate': 'arcana-fortune-mate',
+  'Asuka Shikinami Langley: Wille': 'asuka-shikinami-langley-wille',
+  'Brid: Silent Track': 'brid-silent-track',
+  'D: Killer Wife': 'd-killer-wife',
+  'Delta: Ninja Thief': 'delta-ninja-thief',
+  'Diesel: Winter Sweets': 'diesel-winter-sweets',
+  'Dorothy: Serendipity': 'dorothy-serendipity',
+  'Elegg: Boom and Shock': 'elegg-boom-and-shock',
+  'Emma: Tactical Upgrade': 'emma-tactical-upgrade',
+  'Eunhwa: Tactical Upgrade': 'eunhwa-tactical-upgrade',
+  'Guillotine: Winter Slayer': 'guillotine-winter-slayer',
+  'Ludmilla: Winter Owner': 'ludmilla-winter-owner',
+  'Maiden: Ice Rose': 'maiden-ice-rose',
+  'Mast: Romantic Maid': 'mast-romantic-maid',
+  'Mica: Snow Buddy': 'mica-snow-buddy',
+  'Mihara: Bonding Chain': 'mihara-bonding-chain',
+  'Milk: Blooming Bunny': 'milk-blooming-bunny',
+  'Neon: Vision Eye': 'neon-vision-eye',
+  'Privaty: Unkind Maid': 'privaty-unkind-maid',
+  'Quency: Escape Queen': 'quency-escape-queen',
+  'Rapunzel: Pure Grace': 'rapunzel-pure-grace',
+  'Rosanna: Chic Ocean': 'rosanna-chic-ocean',
+  'Sakura: Bloom in Summer': 'sakura-bloom-in-summer',
+  'Scarlet: Black Shadow': 'scarlet-black-shadow',
+  'Soda: Twinkling Bunny': 'soda-twinkling-bunny',
+  'Soline: Frost Ticket': 'soline-frost-ticket',
+  'Snow White: Heavy Arms': 'snow-white-heavy-arms',
+  'Vesti: Tactical Upgrade': 'vesti-tactical-upgrade',
+  'Rapi: Red Hood': 'rapi-red-hood',
+  'Privaty (Treasure)': 'privaty-treasure',
+  'Helm (Treasure)': 'helm-treasure',
+  'Moran (Treasure)': 'moran-treasure',
+  'Exia (Treasure)': 'exia-treasure',
+  'Miranda (Treasure)': 'miranda-treasure',
+  'Zwei (Treasure)': 'zwei-treasure',
+  'Frima (Treasure)': 'frima-treasure',
+  'Milk (Treasure)': 'milk-treasure',
+  'Tove (Treasure)': 'tove-treasure',
+  'Laplace (Treasure)': 'laplace-treasure',
+  'Julia (Treasure)': 'julia-treasure',
+  'Drake (Treasure)': 'drake-treasure',
+  'Diesel (Treasure)': 'diesel-treasure',
+  'Centi (Treasure)': 'centi-treasure',
+  'Poli (Treasure)': 'poli-treasure',
+  'Viper (Treasure)': 'viper-treasure',
+  'Bay (Treasure)': 'bay-treasure',
+  'Helm (Treasure)': 'helm-treasure',
+  'E.H.': 'e-h',
+  'Product 08': 'product-08',
+  'Product 12': 'product-12',
+  'Product 23': 'product-23',
+  'iDoll Flower': 'idoll-flower',
+  'iDoll Ocean': 'idoll-ocean',
+  'iDoll Sun': 'idoll-sun',
+  'Little Mermaid (Siren)': 'siren',
+  'Rei Ayanami (Tentative Name)': 'rei-ayanami-tentative-name',
+};
+
+function nikkeSlug(name) {
+  if (NIKKE_SLUG_OVERRIDES[name]) return NIKKE_SLUG_OVERRIDES[name];
+  return name.toLowerCase()
+    .replace(/:/g, '')
+    .replace(/\./g, '')
+    .replace(/'/g, '')
+    .replace(/\(/g, '')
+    .replace(/\)/g, '')
+    .replace(/\s+/g, '-');
+}
+
+function nikkeIcon(name, size) {
+  const sz = size || 22;
+  const slug = nikkeSlug(name);
+  return `<div style="width:${sz}px;height:${sz}px;border-radius:50%;overflow:hidden;flex-shrink:0"><img src="https://cdn.prydwen.gg/images/nikke/characters/${slug}_icon.webp" alt="${name}" style="width:${sz * 1.8}px;height:${sz * 1.8}px;object-fit:cover;object-position:top center;margin-left:-${sz * 0.4}px;margin-top:-${sz * 0.05}px" onerror="this.src='https://cdn.prydwen.gg/images/nikke/characters/${slug}_card.webp';this.onerror=function(){this.parentElement.style.display='none'}"></div>`;
+}
 
 
 // ============================================================
@@ -1125,7 +1319,13 @@ function getVerdict(nikke, slot) {
       } else if (ceGain.gain > 0) {
         ceGainLabel = `${ceGain.stat} +${ceGain.gain.toFixed(2)}%`;
       }
-      return { label: '1 good line — need a second', steps, cls: 'v-ok', rocks: fishRocks, gain: ceGainLabel };
+      // Determine which good stats are missing from this piece
+      const existingGoodStats = new Set(goodLines.map(l => l.stat));
+      const missingGoodStats = nikke.priorities
+        .filter(p => (p.tier === 'Essential' || p.tier === 'Ideal') && !existingGoodStats.has(p.line) && !usedStats.has(p.line))
+        .map(p => p.line);
+      const targetStatLabel = missingGoodStats.length ? missingGoodStats.join('/') : goodStatNames;
+      return { label: `1 good line — fish for ${targetStatLabel}`, steps, cls: 'v-ok', rocks: fishRocks, gain: ceGainLabel };
     }
   }
 
@@ -1244,7 +1444,7 @@ function getSlotRank(nikkeId, slot) {
 //  STATE & PERSISTENCE
 // ============================================================
 
-let state = { nikkes: [], selGear: null, selPrio: null, elementalBoss: true, raids: [], selRaid: null, selRaidEdit: null, rankSort: 'efficiency' };
+let state = { nikkes: [], selGear: null, selPrio: null, elementalBoss: true, raids: [], selRaid: null, selRaidEdit: null, rankSort: 'efficiency', gearElementFilter: '' };
 
 // Convert Roman numeral burst to number (I→1, II→2, III→3, All→All)
 function burstNum(b) {
@@ -1265,6 +1465,9 @@ function load() {
   } catch(e) {}
   if (!state.nikkes) state.nikkes = [];
   if (state.elementalBoss === undefined) state.elementalBoss = true;
+  if (state.gearElementFilter === undefined) state.gearElementFilter = '';
+  if (state.gearBurstFilter === undefined) state.gearBurstFilter = '';
+  if (state.overviewElementFilter === undefined) state.overviewElementFilter = '';
   if (!state.raids) state.raids = [];
   if (state.selRaid === undefined) state.selRaid = null;
   if (state.selRaidEdit === undefined) state.selRaidEdit = null;
@@ -1337,8 +1540,8 @@ function mkNikke(name, burst, element) {
   });
   // ID uses no decimal point (avoids inline onclick breakage)
   return { id: 'n' + Date.now() + Math.floor(Math.random() * 1000000), name, burst, element, gear, priorities: [
-    { line: 'ATK', tier: 'Essential', count: 4, targetTier: 11 },
-    { line: 'Elemental Damage', tier: 'Essential', count: 4, targetTier: 11 },
+    { line: 'ATK', tier: 'Essential', count: 4, targetTier: 10 },
+    { line: 'Elemental Damage', tier: 'Essential', count: 4, targetTier: 10 },
   ] };
 }
 
@@ -1406,29 +1609,29 @@ function renderOverview() {
           rocks = v.rocks || 0;
         }
         urgencyCls = v.cls === 'v-reroll' ? 'p-unmet' : 'p-passable';
-        actions.push({ nikkeId: n.id, nikke: n.name, slot, action, rocks, urgencyCls, vcls: v.cls });
+        actions.push({ nikkeId: n.id, nikke: n.name, element: n.element, slot, action, rocks, urgencyCls, vcls: v.cls });
       });
     });
-    if (!actions.length) return '<div style="font-size:12px;color:#4ade80;padding:8px 0">All tracked slots are complete — nice work!</div>';
+    // Apply element filter
+    const filteredActions = state.overviewElementFilter
+      ? actions.filter(a => a.element === state.overviewElementFilter)
+      : actions;
+    if (!filteredActions.length) return '<div style="font-size:12px;color:#4ade80;padding:8px 0">All tracked slots are complete — nice work!</div>';
     // Sort: reroll (no good lines) first, then ok (partial), by rocks ascending within each group
-    actions.sort((a, b) => {
+    filteredActions.sort((a, b) => {
       if (a.vcls !== b.vcls) return a.vcls === 'v-reroll' ? -1 : 1;
       return a.rocks - b.rocks;
     });
     // Show at most 8 items to keep it digestible
-    const shown = actions.slice(0, 8);
-    const remaining = actions.length - shown.length;
+    const shown = filteredActions.slice(0, 8);
+    const remaining = filteredActions.length - shown.length;
     const rows = shown.map(a => `
       <div class="ov-nikke" style="cursor:pointer;padding:8px 12px;margin-bottom:4px" onclick="goToGearSlot('${a.nikkeId}','${a.slot}')">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
-          <div style="display:flex;align-items:center;gap:8px;min-width:0">
-            <span class="pill ${a.urgencyCls}" style="flex-shrink:0">${a.slot}</span>
-            <span style="font-size:13px;font-weight:600;color:#f1f5f9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.nikke}</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
-            <span style="font-size:12px;color:#e2e8f0">${a.action}</span>
-            <span class="rock-est" style="margin:0">~${a.rocks} 🪨</span>
-          </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="pill ${a.urgencyCls}" style="flex-shrink:0;width:52px;text-align:center">${a.slot}</span>
+          <span style="font-size:13px;font-weight:600;color:#f1f5f9;width:180px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.nikke}</span>
+          <span style="font-size:12px;color:#e2e8f0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.action}</span>
+          <span class="rock-est" style="margin:0;flex-shrink:0">~${a.rocks} 🪨</span>
         </div>
       </div>`).join('');
     return rows + (remaining > 0 ? `<div style="font-size:11px;color:#475569;padding:4px 12px">+ ${remaining} more — see efficiency ranking below</div>` : '');
@@ -1472,17 +1675,22 @@ function renderOverview() {
         }
       }
       if (rocks <= 0 || gainTotal <= 0) return;
+      // Apply stat damage weight based on which stat the gain is for
+      const statMatch = gainLabel.match(/^(?:net\s+)?(\w[\w\s]*?)\s+[+-]/);
+      const gainStat = statMatch ? ALL_LINES.find(l => gainLabel.includes(l)) || '' : '';
+      const dmgWeight = gainStat ? getStatDmgWeight(gainStat, n.name) : 1.0;
+      const weightedGainRaw = gainTotal * dmgWeight;
       // Weight by damage if raid selected
       const dmg = raidDmgMap[n.id] || 0;
-      const weightedGain = dmg > 0 ? (gainTotal / 100) * dmg : gainTotal;
+      const weightedGain = dmg > 0 ? (weightedGainRaw / 100) * dmg : weightedGainRaw;
       const efficiency = weightedGain / rocks;
-      rankings.push({ nikkeId: n.id, nikke: n.name, slot, rocks, gain: gainTotal, gainLabel, efficiency, dmg, weightedGain });
+      rankings.push({ nikkeId: n.id, nikke: n.name, slot, rocks, gain: gainTotal, gainLabel, efficiency, dmg, weightedGain, dmgWeight });
     });
   });
   rankings.sort((a, b) => b.efficiency - a.efficiency);
 
   // Raid selector dropdown
-  const raidOpts = state.raids.map(r => `<option value="${r.id}" ${state.selRaid === r.id ? 'selected' : ''}>${r.name}</option>`).join('');
+  const raidOpts = state.raids.map(r => { const dn = r.element ? `${r.name} - ${r.element} Weak` : r.name; return `<option value="${r.id}" ${state.selRaid === r.id ? 'selected' : ''}>${dn}</option>`; }).join('');
   const raidSelector = state.raids.length ? `
     <select class="form-input" style="font-size:12px;padding:3px 8px;width:auto;display:inline-block;margin-left:8px" onchange="selectRaidFilter(this.value)">
       <option value="">All Nikkes</option>${raidOpts}
@@ -1501,11 +1709,10 @@ function renderOverview() {
   }
 
   const sortArrow = (col) => sortBy === col ? ' ▼' : '';
-  const rankingHtml = rankings.length ? `
-    <div class="section-label" style="margin-top:1.5rem">Rock efficiency ranking${raidSelector} <span style="font-size:10px;color:#475569;font-weight:400">(${selRaid ? 'damage gain per rock' : 'gain% per rock'}, higher = better)</span></div>
-    <table class="attr-table" style="width:100%">
-      <tr><th>#</th><th>Nikke</th><th>Slot</th><th>Rocks</th><th>Gain</th>${selRaid ? `<th class="sort-header" onclick="setRankSort('dmg')">DMG${sortArrow('dmg')}</th><th class="sort-header" onclick="setRankSort('dmgGain')">DMG Gain${sortArrow('dmgGain')}</th>` : ''}<th class="sort-header" onclick="setRankSort('efficiency')">Efficiency${sortArrow('efficiency')}</th></tr>
-      ${rankings.map((r, i) => `<tr class="rank-row" onclick="goToGearSlot('${r.nikkeId}','${r.slot}')">
+  const rankingHtml = rankings.length ? (() => {
+    const top10 = rankings.slice(0, 10);
+    const next10 = rankings.slice(10, 20);
+    const renderRow = (r, i) => `<tr class="rank-row" onclick="goToGearSlot('${r.nikkeId}','${r.slot}')">
         <td style="color:#475569">${i + 1}</td>
         <td style="font-weight:500">${r.nikke}</td>
         <td>${r.slot}</td>
@@ -1513,8 +1720,19 @@ function renderOverview() {
         <td style="color:#4ade80">${r.gainLabel}</td>
         ${selRaid ? `<td style="color:#94a3b8">${r.dmg ? r.dmg + 'M' : '—'}</td><td style="color:#60a5fa;font-weight:600">${r.dmg ? '+' + (r.gain / 100 * r.dmg).toFixed(2) + 'M' : '—'}</td>` : ''}
         <td style="font-weight:700;color:${selRaid ? (r.efficiency >= 0.5 ? '#4ade80' : r.efficiency >= 0.1 ? '#fbbf24' : '#f87171') : (r.efficiency >= 1 ? '#4ade80' : r.efficiency >= 0.3 ? '#fbbf24' : '#f87171')}">${selRaid ? r.efficiency.toFixed(2) + 'M/rock' : r.efficiency.toFixed(3) + '%/rock'}</td>
-      </tr>`).join('')}
-    </table>` : `<div class="section-label" style="margin-top:1.5rem">Rock efficiency ranking${raidSelector}</div><div style="font-size:12px;color:#475569">No actionable slots to rank</div>`;
+      </tr>`;
+    const toggleBtn = next10.length ? `<tr id="rank-toggle-row"><td colspan="99" style="text-align:center;padding:8px">
+      <button class="btn-sm" onclick="var el=document.getElementById('rank-next10');var btn=this;if(el.style.display==='none'){el.style.display='';btn.textContent='Hide #11–${Math.min(20, rankings.length)} ▲'}else{el.style.display='none';btn.textContent='Show next 10 ▼'}">Show next 10 ▼</button>
+    </td></tr>` : '';
+    const next10Rows = next10.length ? `<tbody id="rank-next10" style="display:none">${next10.map((r, i) => renderRow(r, i + 10)).join('')}</tbody>` : '';
+    return `<div class="section-label" style="margin-top:1.5rem">Rock efficiency ranking${raidSelector} <span style="font-size:10px;color:#475569;font-weight:400">(${selRaid ? 'damage gain per rock' : 'gain% per rock'}, higher = better)</span></div>
+    <table class="attr-table" style="width:100%">
+      <tr><th>#</th><th>Nikke</th><th>Slot</th><th>Rocks</th><th>Gain</th>${selRaid ? `<th class="sort-header" onclick="setRankSort('dmg')">DMG${sortArrow('dmg')}</th><th class="sort-header" onclick="setRankSort('dmgGain')">DMG Gain${sortArrow('dmgGain')}</th>` : ''}<th class="sort-header" onclick="setRankSort('efficiency')">Efficiency${sortArrow('efficiency')}</th></tr>
+      ${top10.map((r, i) => renderRow(r, i)).join('')}
+      ${toggleBtn}
+      ${next10Rows}
+    </table>`;
+  })() : `<div class="section-label" style="margin-top:1.5rem">Rock efficiency ranking${raidSelector}</div><div style="font-size:12px;color:#475569">No actionable slots to rank</div>`;
 
   el.innerHTML = `
     <div class="ov-grid">
@@ -1523,15 +1741,28 @@ function renderOverview() {
       <div class="metric-card"><div class="metric-val" style="color:#f59e0b">${partial}</div><div class="metric-label">In progress</div></div>
       <div class="metric-card"><div class="metric-val">${pct}%</div><div class="metric-label">Completion</div></div>
     </div>
-    <div class="section-label">Next actions <span style="font-size:10px;color:#475569;font-weight:400">(click to jump)</span></div>
-    ${actionRows}
-    ${rankingHtml}`;
+    ${rankingHtml}
+    <details style="margin-top:1.5rem">
+      <summary class="section-label" style="display:flex;align-items:center;gap:10px;cursor:pointer">Next actions <span style="font-size:10px;color:#475569;font-weight:400">(click to jump)</span>
+        <select style="font-size:11px;padding:2px 6px;background:#0f1117;color:#e2e8f0;border:1px solid #2d3f5e;border-radius:5px;font-weight:400" onclick="event.stopPropagation()" onchange="setOverviewElementFilter(this.value)">
+          <option value="">All Elements</option>
+          ${['Fire','Water','Wind','Electric','Iron'].map(e => `<option value="${e}" ${state.overviewElementFilter === e ? 'selected' : ''}>${e}</option>`).join('')}
+        </select>
+      </summary>
+      ${actionRows}
+    </details>`;
 }
 
 function toggleElementalBoss(checked) {
   state.elementalBoss = checked;
   save();
   render();
+}
+
+function setOverviewElementFilter(val) {
+  state.overviewElementFilter = val;
+  save();
+  renderOverview();
 }
 
 function selectRaidFilter(raidId) {
@@ -1555,8 +1786,11 @@ function renderRoster() {
   const cards = state.nikkes.map(n => {
     const dots = SLOTS.map(s => `<div class="dot ${dotStatus(n, s)}" title="${s}"></div>`).join('');
     return `<div class="nikke-card">
-      <div style="display:flex;justify-content:space-between;align-items:start">
-        <div><div class="nikke-name">${n.name}</div><div class="nikke-meta">${n.element || ''} · B${burstNum(n.burst)}</div></div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="display:flex;align-items:center;gap:10px;min-width:0">
+          ${nikkeIcon(n.name, 44)}
+          <div style="min-width:0"><div class="nikke-name">${n.name}</div><div class="nikke-meta">${n.element || ''} · B${burstNum(n.burst)}</div></div>
+        </div>
         <button class="del-btn" onclick="requestDelete('${n.id}')" title="Remove">✕</button>
       </div>
       <div class="gear-dots">${dots}</div>
@@ -1628,15 +1862,46 @@ function addNikke() {
 
 function renderGear() {
   const el = document.getElementById('gear');
-  const list = state.nikkes.map(n => {
+  let filtered = state.nikkes;
+  if (state.gearElementFilter) filtered = filtered.filter(n => n.element === state.gearElementFilter);
+  if (state.gearBurstFilter) filtered = filtered.filter(n => n.burst === state.gearBurstFilter);
+  const list = filtered.map(n => {
     const done = SLOTS.filter(s => dotStatus(n, s) === 'done').length;
-    return `<div class="nikke-item ${state.selGear === n.id ? 'active' : ''}" onclick="selGearNikke('${n.id}')">
-      ${n.name}<div class="nikke-item-sub">${done}/4 slots done</div>
+    return `<div class="nikke-item ${state.selGear === n.id ? 'active' : ''}" onclick="selGearNikke('${n.id}')" style="display:flex;align-items:center;gap:8px">
+      ${nikkeIcon(n.name, 26)}<div>${n.name}<div class="nikke-item-sub">${done}/4 slots done</div></div>
     </div>`;
-  }).join('') || '<div style="font-size:12px;color:#475569;padding:6px">No Nikkes added</div>';
+  }).join('') || '<div style="font-size:12px;color:#475569;padding:6px">No Nikkes match filter</div>';
+
+  // Build element filter options from elements present in roster
+  const elements = [...new Set(state.nikkes.map(n => n.element).filter(Boolean))].sort();
+  const elemOpts = elements.map(e => `<option value="${e}" ${state.gearElementFilter === e ? 'selected' : ''}>${e}</option>`).join('');
+  const filterHtml = `<div style="display:flex;gap:4px;margin-bottom:6px">
+    <select style="font-size:11px;padding:3px 6px;background:#0f1117;color:#e2e8f0;border:1px solid #2d3f5e;border-radius:5px;flex:1" onchange="setGearElementFilter(this.value)">
+      <option value="">All Elements</option>${elemOpts}
+    </select>
+    <select style="font-size:11px;padding:3px 6px;background:#0f1117;color:#e2e8f0;border:1px solid #2d3f5e;border-radius:5px;flex:1" onchange="setGearBurstFilter(this.value)">
+      <option value="">All Bursts</option>
+      <option value="I" ${state.gearBurstFilter === 'I' ? 'selected' : ''}>B1</option>
+      <option value="II" ${state.gearBurstFilter === 'II' ? 'selected' : ''}>B2</option>
+      <option value="III" ${state.gearBurstFilter === 'III' ? 'selected' : ''}>B3</option>
+    </select>
+  </div>`;
+
+  // Add Nikke button and form
+  const addedNames = new Set(state.nikkes.map(n => n.name));
+  const addOptions = NIKKE_DATABASE
+    .filter(n => !addedNames.has(n.name))
+    .map(n => `<option value="${n.name}">${n.name} · ${n.element} · B${burstNum(n.burst)}</option>`)
+    .join('');
+  const addHtml = `<button class="add-line-btn" onclick="showGearAddForm()" style="margin-top:6px;width:100%">+ Add Nikke</button>
+    <div id="gear-add-form" class="form-panel" style="max-width:100%;margin-top:6px">
+      <div class="form-row"><input class="form-input" id="gear-nn-search" placeholder="Type to filter..." oninput="filterGearNikkeList()" style="font-size:11px;padding:4px 6px"/></div>
+      <div class="form-row"><select id="gear-nn-select" class="form-input" size="6" style="height:auto;overflow-y:auto;font-size:11px">${addOptions}</select></div>
+      <div class="btn-row"><button class="btn" onclick="hideGearAddForm()" style="font-size:11px;padding:3px 8px">Cancel</button><button class="btn btn-primary" onclick="addNikkeFromGear()" style="font-size:11px;padding:3px 8px">Add</button></div>
+    </div>`;
 
   el.innerHTML = `<div class="two-col">
-    <div class="nikke-list">${list}</div>
+    <div class="nikke-list">${filterHtml}${list}${addHtml}</div>
     <div id="gear-main">${state.selGear ? '' : '<div class="empty-state">← Select a Nikke</div>'}</div>
   </div>`;
 
@@ -1646,7 +1911,60 @@ function renderGear() {
   }
 }
 
-function selGearNikke(id) { state.selGear = id; renderGear(); }
+function setGearBurstFilter(val) {
+  state.gearBurstFilter = val;
+  save();
+  renderGear();
+  renderPriority();
+}
+
+function showGearAddForm() {
+  document.getElementById('gear-add-form').classList.add('show');
+  document.getElementById('gear-nn-search').focus();
+}
+function hideGearAddForm() { document.getElementById('gear-add-form').classList.remove('show'); }
+
+function filterGearNikkeList() {
+  const q = document.getElementById('gear-nn-search').value.toLowerCase();
+  const sel = document.getElementById('gear-nn-select');
+  const addedNames = new Set(state.nikkes.map(n => n.name));
+  const filtered = NIKKE_DATABASE
+    .filter(n => !addedNames.has(n.name) && n.name.toLowerCase().includes(q));
+  sel.innerHTML = filtered
+    .map(n => `<option value="${n.name}">${n.name} · ${n.element} · B${burstNum(n.burst)}</option>`)
+    .join('');
+}
+
+function addNikkeFromGear() {
+  const sel = document.getElementById('gear-nn-select');
+  const name = sel.value;
+  if (!name) return;
+  const entry = NIKKE_DATABASE.find(n => n.name === name);
+  if (!entry) return;
+  const nikke = mkNikke(entry.name, entry.burst, entry.element);
+  state.nikkes.push(nikke);
+  state.selGear = nikke.id;
+  save(); render();
+}
+
+function setGearElementFilter(val) {
+  state.gearElementFilter = val;
+  save();
+  renderGear();
+  renderPriority();
+}
+
+function selGearNikke(id) {
+  if (state.selGear === id) return;
+  state.selGear = id;
+  // Just update active class without re-rendering sidebar
+  document.querySelectorAll('#gear .nikke-list .nikke-item').forEach(el => {
+    el.classList.toggle('active', el.getAttribute('onclick')?.includes(id));
+  });
+  // Only re-render the main content area
+  const n = state.nikkes.find(x => x.id === id);
+  if (n) renderGearMain(n);
+}
 
 function renderGearMain(nikke) {
   const area = document.getElementById('gear-main');
@@ -1713,18 +2031,20 @@ function renderGearMain(nikke) {
           <span class="line-label">Line ${i + 1}</span>
           <span class="line-chance ${LINE_CHANCE_CSS[i]}">${LINE_CHANCE_LABELS[i]}</span>
         </div>
-        <select onchange="updateStat('${nikke.id}','${slot}',${i},this.value)">
+        <select onchange="updateStat('${nikke.id}','${slot}',${i},this.value)" onkeydown="gearSelectKeydown(event,'${nikke.id}','${slot}',${i})" data-gear-select="${nikke.id}-${slot}-${i}" tabindex="${i * 2 + 1}">
           <option value="">— none —</option>${opts}
         </select>
         ${prioLabel}
         <div class="value-row">
           <input class="value-input" type="text" inputmode="decimal"
+            data-gear-val="${nikke.id}-${slot}-${i}"
             placeholder="${line.stat ? 'value' : '-'}"
             value="${line.val || ''}"
             ${!line.stat ? 'disabled' : ''}
+            tabindex="${i * 2 + 2}"
             oninput="formatValLive(this)"
             onblur="updateVal('${nikke.id}','${slot}',${i},this.value)"
-            onkeydown="if(event.key==='Enter'){this.blur()}"/>
+            onkeydown="gearValKeydown(event,'${nikke.id}','${slot}',${i})"/>
           ${unit ? `<span class="value-unit">${unit}</span>` : ''}
           ${tb ? `<span class="tier-badge ${tb.cls}">${tb.label}</span>` : ''}
         </div>
@@ -1732,7 +2052,7 @@ function renderGearMain(nikke) {
         ${line.stat && line.val && aboveMin && !atTarget && isGoodLine(cls) ? `<div class="below-text">Below target T${targetTier}</div>` : ''}
         <button class="lock-btn ${line.locked ? 'locked' : ''}"
           onclick="toggleLock('${nikke.id}','${slot}',${i})"
-          ${!line.stat ? 'disabled' : ''}>
+          ${!line.stat ? 'disabled' : ''} tabindex="-1">
           ${line.locked ? '🔒 Locked' : 'Lock'}
         </button>
         <div class="line-bar ${barCls}"></div>
@@ -1772,7 +2092,12 @@ function renderGearMain(nikke) {
     }
 
     return `<div class="slot-card">
-      <div class="slot-header"><span class="slot-tag">${slot}</span>${badge}</div>
+      <div class="slot-header"><span class="slot-tag">${slot}</span><div style="display:flex;align-items:center;gap:6px">${badge}<button class="btn-sm" onclick="showBulkPaste('${nikke.id}','${slot}')" title="Paste all lines at once">📋 Paste</button></div></div>
+      <div id="bulk-paste-${nikke.id}-${slot}" class="form-panel" style="max-width:100%;margin-top:0;margin-bottom:8px">
+        <div style="font-size:11px;color:#64748b;margin-bottom:6px">Paste lines (one per row or comma-separated):<br><span style="color:#475569">e.g. ATK 10.40, EleD 20.75, CritDmg 9.58</span></div>
+        <textarea style="width:100%;font-size:12px;background:#0f1117;color:#e2e8f0;border:1px solid #2d3f5e;border-radius:6px;padding:6px 8px;resize:vertical;min-height:60px;font-family:inherit" placeholder="ATK 10.40&#10;Elemental Damage 20.75&#10;Critical Rate 5.03"></textarea>
+        <div class="btn-row" style="margin-top:6px"><button class="btn" onclick="showBulkPaste('${nikke.id}','${slot}')">Cancel</button><button class="btn btn-primary" onclick="applyBulkPaste('${nikke.id}','${slot}')">Apply</button></div>
+      </div>
       <div class="lines-grid">${lineBoxes}</div>
       ${verdictHtml}
     </div>`;
@@ -1790,11 +2115,139 @@ function renderGearMain(nikke) {
     ${slots}`;
 }
 
+// ── Bulk Paste ──────────────────────────────────────────────
+// Parses text like:
+//   ATK 10.40
+//   Elemental Damage 20.75
+//   Crit Rate 5.03
+// Or comma-separated: ATK 10.40, EleD 20.75, CritDmg 9.58
+// Or from in-game screenshot copy (stat: value% format)
+
+const STAT_ALIASES = {
+  'atk': 'ATK', 'attack': 'ATK',
+  'ele': 'Elemental Damage', 'eled': 'Elemental Damage', 'elemental': 'Elemental Damage', 'elemental damage': 'Elemental Damage', 'elem': 'Elemental Damage', 'element': 'Elemental Damage',
+  'ammo': 'Max Ammo', 'max ammo': 'Max Ammo', 'maxammo': 'Max Ammo',
+  'cs': 'Charge Speed', 'charge speed': 'Charge Speed', 'chargespeed': 'Charge Speed', 'chgspd': 'Charge Speed',
+  'cd': 'Charge Damage', 'charge damage': 'Charge Damage', 'chargedamage': 'Charge Damage', 'chgdmg': 'Charge Damage',
+  'cr': 'Critical Rate', 'crit rate': 'Critical Rate', 'critrate': 'Critical Rate', 'critical rate': 'Critical Rate', 'crate': 'Critical Rate',
+  'critdmg': 'Critical Damage', 'crit damage': 'Critical Damage', 'crit dmg': 'Critical Damage', 'critical damage': 'Critical Damage', 'cdmg': 'Critical Damage',
+  'hr': 'Hit Rate', 'hit rate': 'Hit Rate', 'hitrate': 'Hit Rate', 'hit': 'Hit Rate',
+  'def': 'DEF', 'defense': 'DEF',
+};
+
+function resolveStatName(raw) {
+  const lower = raw.trim().toLowerCase().replace(/[:%]/g, '');
+  // Exact match first
+  const exact = ALL_LINES.find(s => s.toLowerCase() === lower);
+  if (exact) return exact;
+  // Alias match
+  if (STAT_ALIASES[lower]) return STAT_ALIASES[lower];
+  // Partial match
+  const partial = ALL_LINES.find(s => s.toLowerCase().startsWith(lower));
+  if (partial) return partial;
+  return null;
+}
+
+function parseBulkPaste(text) {
+  // Split by newlines or commas
+  const parts = text.split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
+  const results = [];
+  for (const part of parts) {
+    // Match pattern: stat name followed by a number (with optional % sign)
+    // Handle formats like "ATK 10.40", "ATK: 10.40%", "Elemental Damage 20.75"
+    const match = part.match(/^(.+?)\s*[:=]?\s*(\d+\.?\d*)\s*%?\s*$/);
+    if (match) {
+      const stat = resolveStatName(match[1]);
+      const val = match[2];
+      if (stat) {
+        results.push({ stat, val });
+      }
+    }
+  }
+  return results.slice(0, 3); // max 3 lines per gear piece
+}
+
+function showBulkPaste(nikkeId, slot) {
+  const el = document.getElementById(`bulk-paste-${nikkeId}-${slot}`);
+  if (el) {
+    el.classList.toggle('show');
+    if (el.classList.contains('show')) {
+      const ta = el.querySelector('textarea');
+      if (ta) { ta.value = ''; ta.focus(); }
+    }
+  }
+}
+
+function applyBulkPaste(nikkeId, slot) {
+  const el = document.getElementById(`bulk-paste-${nikkeId}-${slot}`);
+  const ta = el.querySelector('textarea');
+  const parsed = parseBulkPaste(ta.value);
+  if (!parsed.length) return;
+
+  const n = state.nikkes.find(x => x.id === nikkeId);
+  if (!n) return;
+
+  // Check for duplicate stats within the paste
+  const pasteStats = parsed.map(p => p.stat);
+  const hasDupes = new Set(pasteStats).size !== pasteStats.length;
+  if (hasDupes) {
+    ta.style.borderColor = '#ef4444';
+    return;
+  }
+
+  // Apply parsed lines (overwrite non-locked lines from line 0 onward)
+  let lineIdx = 0;
+  for (const p of parsed) {
+    // Find next non-locked line
+    while (lineIdx < 3 && n.gear[slot].lines[lineIdx].locked) lineIdx++;
+    if (lineIdx >= 3) break;
+    n.gear[slot].lines[lineIdx].stat = p.stat;
+    n.gear[slot].lines[lineIdx].val = p.val;
+    lineIdx++;
+  }
+
+  save();
+  renderGearMain(n);
+  renderOverview();
+}
+
 function updateStat(nid, slot, i, val) {
   const n = state.nikkes.find(x => x.id === nid);
   n.gear[slot].lines[i].stat = val;
   if (!val) { n.gear[slot].lines[i].val = ''; n.gear[slot].lines[i].locked = false; }
   save(); renderGear(); renderOverview();
+  // Auto-focus the value input for this line after selecting a stat
+  if (val) {
+    setTimeout(() => {
+      const inp = document.querySelector(`[data-gear-val="${nid}-${slot}-${i}"]`);
+      if (inp && !inp.disabled) inp.focus();
+    }, 0);
+  }
+}
+
+function gearValKeydown(event, nid, slot, i) {
+  if (event.key === 'Enter' || event.key === 'Tab') {
+    event.preventDefault();
+    // Trigger blur to save value, then jump to next line's select
+    event.target.blur();
+  }
+}
+
+function gearSelectKeydown(event, nid, slot, i) {
+  if (event.key === 'Tab') {
+    event.preventDefault();
+    // Jump directly to this line's value input if stat is set, otherwise next line's select
+    const inp = document.querySelector(`[data-gear-val="${nid}-${slot}-${i}"]`);
+    if (inp && !inp.disabled) {
+      inp.focus();
+    } else {
+      const nextIdx = i + 1;
+      if (nextIdx < 3) {
+        const nextSel = document.querySelector(`[data-gear-select="${nid}-${slot}-${nextIdx}"]`);
+        if (nextSel) nextSel.focus();
+      }
+    }
+  }
 }
 function formatValLive(input) {
   // Strip non-digits, then auto-insert decimal before last 2 digits as user types
@@ -1810,6 +2263,14 @@ function updateVal(nid, slot, i, val) {
   const n = state.nikkes.find(x => x.id === nid);
   n.gear[slot].lines[i].val = val.trim();
   save(); renderGearMain(n); renderOverview();
+  // Auto-focus the next line's stat select (if there is one and it's empty)
+  const nextIdx = i + 1;
+  if (nextIdx < 3 && val.trim()) {
+    setTimeout(() => {
+      const sel = document.querySelector(`[data-gear-select="${nid}-${slot}-${nextIdx}"]`);
+      if (sel && !sel.value) sel.focus();
+    }, 0);
+  }
 }
 function toggleLock(nid, slot, i) {
   const n = state.nikkes.find(x => x.id === nid);
@@ -1826,14 +2287,32 @@ function toggleLock(nid, slot, i) {
 
 function renderPriority() {
   const el = document.getElementById('priority');
-  const list = state.nikkes.map(n => `
-    <div class="nikke-item ${state.selPrio === n.id ? 'active' : ''}" onclick="selPrioNikke('${n.id}')">
-      ${n.name}<div class="nikke-item-sub">${n.priorities.length ? n.priorities.length + ' line(s) set' : 'No priorities yet'}</div>
+  let filtered = state.nikkes;
+  if (state.gearElementFilter) filtered = filtered.filter(n => n.element === state.gearElementFilter);
+  if (state.gearBurstFilter) filtered = filtered.filter(n => n.burst === state.gearBurstFilter);
+  const list = filtered.map(n => `
+    <div class="nikke-item ${state.selPrio === n.id ? 'active' : ''}" onclick="selPrioNikke('${n.id}')" style="display:flex;align-items:center;gap:8px">
+      ${nikkeIcon(n.name, 26)}<div>${n.name}<div class="nikke-item-sub">${n.priorities.length ? n.priorities.length + ' line(s) set' : 'No priorities yet'}</div></div>
     </div>`
-  ).join('') || '<div style="font-size:12px;color:#475569;padding:6px">No Nikkes added</div>';
+  ).join('') || '<div style="font-size:12px;color:#475569;padding:6px">No Nikkes match filter</div>';
+
+  // Build element filter options from elements present in roster
+  const elements = [...new Set(state.nikkes.map(n => n.element).filter(Boolean))].sort();
+  const elemOpts = elements.map(e => `<option value="${e}" ${state.gearElementFilter === e ? 'selected' : ''}>${e}</option>`).join('');
+  const filterHtml = `<div style="display:flex;gap:4px;margin-bottom:6px">
+    <select style="font-size:11px;padding:3px 6px;background:#0f1117;color:#e2e8f0;border:1px solid #2d3f5e;border-radius:5px;flex:1" onchange="setGearElementFilter(this.value)">
+      <option value="">All Elements</option>${elemOpts}
+    </select>
+    <select style="font-size:11px;padding:3px 6px;background:#0f1117;color:#e2e8f0;border:1px solid #2d3f5e;border-radius:5px;flex:1" onchange="setGearBurstFilter(this.value)">
+      <option value="">All Bursts</option>
+      <option value="I" ${state.gearBurstFilter === 'I' ? 'selected' : ''}>B1</option>
+      <option value="II" ${state.gearBurstFilter === 'II' ? 'selected' : ''}>B2</option>
+      <option value="III" ${state.gearBurstFilter === 'III' ? 'selected' : ''}>B3</option>
+    </select>
+  </div>`;
 
   el.innerHTML = `<div class="two-col">
-    <div class="nikke-list">${list}</div>
+    <div class="nikke-list">${filterHtml}${list}</div>
     <div id="prio-main">${state.selPrio ? '' : '<div class="empty-state">← Select a Nikke</div>'}</div>
   </div>`;
 
@@ -1932,11 +2411,13 @@ function delPrio(nid, i) {
 
 function renderRaids() {
   const el = document.getElementById('raids');
-  const raidList = state.raids.map(r => `
-    <div class="nikke-item ${state.selRaidEdit === r.id ? 'active' : ''}" onclick="selRaidEdit('${r.id}')">
-      ${r.name}
+  const raidList = state.raids.map(r => {
+    const displayName = r.element ? `${elemIcon(r.element)} ${r.name} - ${r.element} Weak` : r.name;
+    return `<div class="nikke-item ${state.selRaidEdit === r.id ? 'active' : ''}" onclick="selRaidEdit('${r.id}')">
+      ${displayName}
       <div class="nikke-item-sub">${r.entries.length} Nikke${r.entries.length !== 1 ? 's' : ''}</div>
-    </div>`).join('') || '<div style="font-size:12px;color:#475569;padding:6px">No raids created</div>';
+    </div>`;
+  }).join('') || '<div style="font-size:12px;color:#475569;padding:6px">No raids created</div>';
 
   el.innerHTML = `<div class="two-col">
     <div class="nikke-list">
@@ -1944,6 +2425,14 @@ function renderRaids() {
       <button class="add-line-btn" onclick="showAddRaidForm()" style="margin-top:8px">+ New Raid</button>
       <div id="add-raid-form" class="form-panel" style="max-width:170px">
         <div class="form-row"><input class="form-input" id="raid-name-input" placeholder="Raid name"/></div>
+        <div class="form-row"><select class="form-input" id="raid-element-input" style="font-size:12px">
+          <option value="">No element (manual)</option>
+          <option value="Fire">Fire</option>
+          <option value="Water">Water</option>
+          <option value="Wind">Wind</option>
+          <option value="Electric">Electric</option>
+          <option value="Iron">Iron</option>
+        </select></div>
         <div class="btn-row"><button class="btn btn-primary" onclick="addRaid()" style="font-size:11px;padding:4px 10px">Add</button></div>
       </div>
     </div>
@@ -1964,7 +2453,15 @@ function showAddRaidForm() {
 function addRaid() {
   const name = document.getElementById('raid-name-input').value.trim();
   if (!name) return;
-  const raid = { id: 'r' + Date.now(), name, entries: [] };
+  const elemSel = document.getElementById('raid-element-input');
+  const element = elemSel ? elemSel.value : '';
+  const raid = { id: 'r' + Date.now(), name, element, entries: [] };
+  // Auto-add all roster Nikkes matching the selected element
+  if (element) {
+    state.nikkes.filter(n => n.element === element).forEach(n => {
+      raid.entries.push({ nikkeId: n.id, damage: 0 });
+    });
+  }
   state.raids.push(raid);
   state.selRaidEdit = raid.id;
   save(); renderRaids();
@@ -1991,12 +2488,13 @@ function renderRaidMain(raid) {
     const name = n ? n.name : '(removed)';
     const dmgFormatted = e.damage ? Number(e.damage).toLocaleString() : '—';
     return `<div class="prio-row" style="grid-template-columns:1fr 120px 26px">
-      <span style="font-size:13px;font-weight:500">${name}</span>
+      <span style="font-size:13px;font-weight:500;display:flex;align-items:center;gap:6px">${n ? nikkeIcon(name, 24) : ''}${name}</span>
       <div style="display:flex;align-items:center;gap:3px">
         <input class="prio-count-input" type="text" inputmode="decimal" value="${e.damage || ''}"
           placeholder="0"
-          onblur="updateRaidDmg('${raid.id}',${i},this.value)"
-          onkeydown="if(event.key==='Enter'){this.blur()}"
+          data-raid-dmg="${raid.id}-${i}"
+          onblur="raidDmgOnBlur('${raid.id}',${i},this.value)"
+          onkeydown="raidDmgKeydown(event,'${raid.id}',${i})"
           style="text-align:right;width:100%"/>
         <span style="font-size:11px;color:#475569">M</span>
       </div>
@@ -2009,9 +2507,11 @@ function renderRaidMain(raid) {
   const available = state.nikkes.filter(n => !addedIds.has(n.id));
   const nikkeOpts = available.map(n => `<option value="${n.id}">${n.name}</option>`).join('');
 
+  const raidDisplayName = raid.element ? `${elemIcon(raid.element)} ${raid.name} - ${raid.element} Weak` : raid.name;
+
   area.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-      <div style="font-size:14px;font-weight:600;color:#f1f5f9">${raid.name}</div>
+      <div style="font-size:14px;font-weight:600;color:#f1f5f9">${raidDisplayName}</div>
       <button class="del-btn" onclick="deleteRaid('${raid.id}')" title="Delete raid">✕ Delete</button>
     </div>
     <div class="info-note" style="margin-bottom:10px">Enter damage in millions from a test run (e.g. 48 = 48M). Used to weight the efficiency ranking.</div>
@@ -2044,11 +2544,43 @@ function removeRaidEntry(raidId, idx) {
   save(); renderRaidMain(raid);
 }
 
-function updateRaidDmg(raidId, idx, val) {
+let _raidDmgSkipBlur = false;
+
+function updateRaidDmg(raidId, idx, val, skipAutoFocus) {
   const raid = state.raids.find(r => r.id === raidId);
   // Store as number in millions (e.g. 48 = 48M)
   raid.entries[idx].damage = parseFloat(val.replace(/[^0-9.]/g, '')) || 0;
-  save(); renderRaidMain(raid);
+  save();
+  // Don't re-render — the input already shows the value, avoid blink
+  if (!skipAutoFocus) {
+    const nextIdx = idx + 1;
+    if (nextIdx < raid.entries.length) {
+      const next = document.querySelector(`[data-raid-dmg="${raidId}-${nextIdx}"]`);
+      if (next) next.focus();
+    }
+  }
+}
+
+function raidDmgOnBlur(raidId, idx, val) {
+  if (_raidDmgSkipBlur) { _raidDmgSkipBlur = false; return; }
+  updateRaidDmg(raidId, idx, val, false);
+}
+
+function raidDmgKeydown(event, raidId, idx) {
+  if (event.key === 'Tab' && event.shiftKey) {
+    event.preventDefault();
+    _raidDmgSkipBlur = true;
+    const val = event.target.value;
+    const prevIdx = idx - 1;
+    updateRaidDmg(raidId, idx, val, true);
+    setTimeout(() => {
+      const prev = document.querySelector(`[data-raid-dmg="${raidId}-${prevIdx}"]`);
+      if (prev) prev.focus();
+    }, 0);
+  } else if (event.key === 'Enter' || event.key === 'Tab') {
+    event.preventDefault();
+    event.target.blur();
+  }
 }
 
 
@@ -2061,6 +2593,10 @@ function switchTab(tab, event) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   if (event) event.target.closest('.tab').classList.add('active');
   document.getElementById(tab).classList.add('active');
+  // Remember tab in query string
+  const url = new URL(window.location);
+  url.searchParams.set('tab', tab);
+  history.replaceState(null, '', url);
   if      (tab === 'overview')  renderOverview();
   else if (tab === 'roster')    renderRoster();
   else if (tab === 'gear')      renderGear();
@@ -2073,15 +2609,25 @@ function goToGearSlot(nikkeId, slot) {
   // Switch to gear tab
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-  document.querySelectorAll('.tab')[2].classList.add('active'); // Gear Tracker tab
+  document.querySelectorAll('.tab')[1].classList.add('active'); // Gear Tracker tab
   document.getElementById('gear').classList.add('active');
   renderGear();
-  // Scroll to the slot card
+  // Scroll to the slot card and flash it
   setTimeout(() => {
     const cards = document.querySelectorAll('.slot-card .slot-tag');
     cards.forEach(tag => {
       if (tag.textContent.trim().toUpperCase() === slot.toUpperCase()) {
-        tag.closest('.slot-card').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const card = tag.closest('.slot-card');
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        card.style.transition = 'box-shadow 0.3s, border-color 0.3s, border-width 0.3s';
+        card.style.boxShadow = '0 0 14px 4px rgba(59,130,246,0.5)';
+        card.style.borderColor = '#3b82f6';
+        card.style.borderWidth = '2px';
+        setTimeout(() => {
+          card.style.boxShadow = '';
+          card.style.borderColor = '';
+          card.style.borderWidth = '';
+        }, 1500);
       }
     });
   }, 50);
@@ -2100,6 +2646,19 @@ function render() {
 
 load();
 render();
+
+// Restore tab from query string
+const initTab = new URLSearchParams(window.location.search).get('tab');
+if (initTab && document.getElementById(initTab)) {
+  const tabs = ['overview','roster','gear','priority','raids'];
+  const idx = tabs.indexOf(initTab);
+  if (idx >= 0) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab')[idx].classList.add('active');
+    document.getElementById(initTab).classList.add('active');
+  }
+}
 </script>
 </body>
 </html>
