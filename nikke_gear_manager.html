@@ -1,0 +1,2081 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Nikke Solo Raid Gear Manager</title>
+
+<!-- ============================================================
+  NIKKE SOLO RAID OVERLOAD GEAR MANAGER
+  ============================================================
+  A tool to track overload gear lines, score rolls, and
+  estimate rock costs for rerolling decisions.
+
+  DATA MODEL
+  ----------
+  state.nikkes[]
+    └── id, name, burst, element
+    └── gear { Helmet, Chest, Gloves, Boots }
+          └── lines[3] { stat, val, locked }
+    └── priorities[]
+          └── { line, tier, count, targetTier }
+
+  KEY GAME RULES BAKED IN
+  -----------------------
+  1. Line appearance rates:  Line 1 = 100%, Line 2 = 50%, Line 3 = 30%
+  2. No duplicate stats on the same gear piece
+  3. Stat pool renormalizes when stats are already on a piece
+  4. Tier probability:  T1–5 = 12% each, T6–10 = 7% each, T11–15 = 1% each
+  5. Lock before reset — never reset an unlocked high-value line
+  6. T12+ lines auto-flag for immediate locking
+  7. Reroll cost = locked lines + 1 rock per roll
+  8. DEF is always treated as trash
+
+  VERDICT LOGIC (in order)
+  ------------------------
+  - 2+ good lines at target             → Keep
+  - Good line exists but below target   → Option A (Reset) vs Option B (Sacrifice)
+  - 1 good line, need a second          → Lock it, Change Effects on rest
+  - No good lines                       → Change Effects freely
+
+  ROCK COST FORMULAS
+  ------------------
+  Change Effects expected rocks:
+    P(good stat on line i) = lineAppear[i] × goodFraction
+    P(at least one good on any unlocked line) = 1 - ∏(1 - P_i)
+    expectedRolls = 1 / P(at least one good)
+    rocks = expectedRolls × (lockedCount + 1)
+
+  Reset Attributes expected rocks (per line, locking after each hit):
+    For each remaining good unlocked line:
+      P(hit target) = sum of TIER_PROB[targetTier..15]
+      P(at least one of N lines hits) = 1 - (1 - P)^N
+      rocks += round(1/P) × (lockedCount + 1)
+      lockedCount++
+
+  STORAGE
+  -------
+  All data saved to localStorage under key 'nikke_v8'.
+  Data persists across page reloads in the same browser.
+============================================================ -->
+
+<style>
+/* ── Reset & base ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: #0f1117;
+  color: #e2e8f0;
+  font-size: 14px;
+  min-height: 100vh;
+}
+
+/* ── Layout ── */
+.app { max-width: 960px; margin: 0 auto; padding: 1.5rem 1rem; }
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 1.5rem; padding-bottom: 1rem;
+  border-bottom: 1px solid #1e2535;
+}
+.title { font-size: 18px; font-weight: 600; color: #f1f5f9; }
+.subtitle { font-size: 12px; color: #64748b; margin-top: 3px; }
+.badge {
+  font-size: 11px; background: #1e3a5f; color: #60a5fa;
+  padding: 3px 10px; border-radius: 6px; font-weight: 500;
+}
+
+/* ── Tabs ── */
+.tabs {
+  display: flex; gap: 2px; margin-bottom: 1.5rem;
+  border-bottom: 1px solid #1e2535;
+}
+.tab {
+  font-size: 13px; padding: 7px 16px; border: none; background: none;
+  color: #64748b; cursor: pointer; border-bottom: 2px solid transparent;
+  margin-bottom: -1px; white-space: nowrap; transition: color 0.15s;
+}
+.tab:hover { color: #94a3b8; }
+.tab.active { color: #f1f5f9; font-weight: 500; border-bottom: 2px solid #3b82f6; }
+.section { display: none; }
+.section.active { display: block; }
+
+/* ── Two-column panel ── */
+.two-col { display: grid; grid-template-columns: 185px 1fr; gap: 14px; }
+.nikke-list { display: flex; flex-direction: column; gap: 4px; }
+.nikke-item {
+  padding: 8px 11px; border-radius: 8px; cursor: pointer;
+  font-size: 13px; border: 1px solid transparent; line-height: 1.3;
+  transition: background 0.1s;
+}
+.nikke-item:hover { background: #1a2235; }
+.nikke-item.active { background: #1a2235; border-color: #2d3f5e; font-weight: 500; }
+.nikke-item-sub { font-size: 11px; color: #64748b; margin-top: 2px; font-weight: 400; }
+
+/* ── Roster ── */
+.roster-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(175px, 1fr)); gap: 10px; margin-bottom: 1rem; }
+.nikke-card {
+  background: #151c2b; border: 1px solid #1e2535;
+  border-radius: 10px; padding: .9rem; position: relative;
+}
+.nikke-name { font-size: 13px; font-weight: 600; margin-bottom: 2px; color: #f1f5f9; }
+.nikke-meta { font-size: 11px; color: #64748b; margin-bottom: 9px; }
+.gear-dots { display: flex; gap: 5px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; border: 1px solid #2d3f5e; background: #1a2235; }
+.dot.done   { background: #22c55e; border-color: #22c55e; }
+.dot.partial { background: #f59e0b; border-color: #f59e0b; }
+.dot.warn   { background: #ef4444; border-color: #ef4444; }
+.add-nikke-btn {
+  border: 1px dashed #2d3f5e; background: none;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  cursor: pointer; height: 68px; color: #64748b; font-size: 13px;
+  border-radius: 10px; width: 175px; transition: background 0.1s;
+}
+.add-nikke-btn:hover { background: #1a2235; }
+
+/* ── Delete confirm ── */
+.del-btn {
+  font-size: 12px; background: none; border: none; color: #475569;
+  cursor: pointer; padding: 2px 5px; border-radius: 4px; line-height: 1;
+}
+.del-btn:hover { color: #ef4444; }
+.del-confirm {
+  display: none; position: absolute; top: 8px; right: 8px;
+  background: #151c2b; border: 1px solid #ef4444; border-radius: 8px;
+  padding: 6px 8px; font-size: 11px; color: #ef4444; z-index: 10;
+  white-space: nowrap; box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  align-items: center; gap: 6px;
+}
+.del-confirm.show { display: flex; }
+.del-confirm-yes { font-size: 11px; font-weight: 600; background: #ef4444; color: #fff; border: none; border-radius: 4px; padding: 2px 8px; cursor: pointer; }
+.del-confirm-no  { font-size: 11px; background: none; border: 1px solid #2d3f5e; border-radius: 4px; padding: 2px 8px; cursor: pointer; color: #94a3b8; }
+
+/* ── Gear slot cards ── */
+.slot-card {
+  background: #151c2b; border: 1px solid #1e2535;
+  border-radius: 10px; padding: .9rem; margin-bottom: 8px;
+}
+.slot-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.slot-tag {
+  font-size: 11px; background: #1a2235; color: #94a3b8;
+  padding: 2px 9px; border-radius: 5px; border: 1px solid #2d3f5e; font-weight: 600;
+  letter-spacing: .04em; text-transform: uppercase;
+}
+.lines-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.line-box {
+  border: 1px solid #1e2535; border-radius: 8px; padding: 8px;
+  background: #0f1117; display: flex; flex-direction: column; gap: 5px;
+}
+.line-header { display: flex; align-items: center; justify-content: space-between; }
+.line-label { font-size: 10px; color: #475569; text-transform: uppercase; letter-spacing: .05em; }
+.line-chance { font-size: 10px; padding: 1px 5px; border-radius: 4px; font-weight: 600; }
+.lc-100 { background: #052e16; color: #4ade80; }
+.lc-50  { background: #052e16; color: #86efac; }
+.lc-30  { background: #422006; color: #fbbf24; }
+.line-box select {
+  width: 100%; font-size: 12px; border: none; background: #0f1117;
+  color: #e2e8f0; cursor: pointer; padding: 2px 0; border-radius: 4px;
+}
+.line-box select option { background: #151c2b; color: #e2e8f0; }
+.line-box select:focus { outline: none; }
+.value-row { display: flex; align-items: center; gap: 4px; }
+.value-input {
+  width: 100%; font-size: 12px; border: none;
+  border-bottom: 1px solid #2d3f5e; background: none;
+  color: #f1f5f9; padding: 1px 0; outline: none;
+}
+.value-input::placeholder { color: #334155; }
+.value-input:disabled { opacity: .3; cursor: not-allowed; }
+.value-unit { font-size: 11px; color: #475569; }
+.tier-badge { font-size: 10px; padding: 1px 5px; border-radius: 4px; font-weight: 700; }
+.tb-low   { background: #3f1010; color: #f87171; }
+.tb-mid   { background: #3f2a06; color: #fbbf24; }
+.tb-high  { background: #052e16; color: #4ade80; }
+.tb-elite { background: #0c1f3f; color: #60a5fa; }
+.line-bar { height: 3px; border-radius: 2px; background: #1e2535; margin-top: 2px; }
+.bar-essential { background: #22c55e; }
+.bar-ideal     { background: #3b82f6; }
+.bar-passable  { background: #f59e0b; }
+.bar-trash     { background: #ef4444; }
+.prio-tag { font-size: 9px; padding: 1px 5px; border-radius: 3px; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; }
+.prio-essential { background: #052e16; color: #4ade80; }
+.prio-ideal { background: #0c1f3f; color: #60a5fa; }
+.prio-passable { background: #3f2a06; color: #fbbf24; }
+.prio-trash { background: #3f1010; color: #f87171; }
+.rank-badge { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-right: 6px; background: #1e3a5f; color: #60a5fa; }
+.rank-row { cursor: pointer; transition: background 0.1s; }
+.rank-row:hover { background: #1a2235; }
+.sort-header { cursor: pointer; user-select: none; }
+.sort-header:hover { color: #60a5fa; }
+.lock-btn {
+  font-size: 10px; padding: 2px 6px; border-radius: 4px;
+  border: 1px solid #2d3f5e; background: none; cursor: pointer;
+  color: #64748b; margin-top: 1px; width: 100%; transition: all 0.1s;
+}
+.lock-btn.locked { background: #052e16; color: #4ade80; border-color: #166534; }
+.lock-btn:hover:not(:disabled) { background: #1a2235; }
+.lock-btn:disabled { opacity: .3; cursor: not-allowed; }
+.warn-text  { font-size: 10px; color: #ef4444; }
+.below-text { font-size: 10px; color: #f59e0b; }
+
+/* ── Verdict box ── */
+.verdict {
+  margin-top: 9px; padding: 10px 12px; border-radius: 8px;
+  font-size: 12px; line-height: 1.6;
+}
+.v-keep   { background: #052e16; border: 1px solid #166534; color: #86efac; }
+.v-ok     { background: #3f2a06; border: 1px solid #92400e; color: #fcd34d; }
+.v-reroll { background: #3f1010; border: 1px solid #991b1b; color: #fca5a5; }
+.verdict-title { font-weight: 700; font-size: 13px; margin-bottom: 7px; cursor: pointer; list-style: none; display: flex; align-items: center; gap: 6px; }
+.verdict-title::before { content: '▶'; font-size: 9px; transition: transform 0.15s; }
+details[open] > .verdict-title::before { transform: rotate(90deg); }
+.verdict-title::-webkit-details-marker { display: none; }
+.verdict-option {
+  margin-bottom: 8px; padding: 8px 10px; border-radius: 6px;
+  background: rgba(0,0,0,0.25);
+}
+.verdict-option-title { font-weight: 600; margin-bottom: 4px; }
+.verdict-steps { display: flex; flex-direction: column; gap: 3px; margin-top: 4px; }
+.verdict-step  { display: flex; gap: 7px; align-items: baseline; font-size: 11px; }
+.step-num      { font-weight: 700; opacity: .5; flex-shrink: 0; width: 14px; }
+.rock-est {
+  display: inline-block; margin-top: 6px; font-size: 11px;
+  padding: 2px 9px; border-radius: 5px;
+  background: rgba(255,255,255,0.08); font-weight: 700;
+}
+.recommended-badge {
+  font-size: 10px; background: #166534; color: #4ade80;
+  padding: 1px 6px; border-radius: 4px; margin-left: 6px; vertical-align: middle;
+}
+
+/* ── Attribute summary table ── */
+.attr-summary {
+  margin-bottom: 10px; background: #151c2b;
+  border: 1px solid #1e2535; border-radius: 10px; padding: .9rem;
+}
+.attr-summary-title {
+  font-size: 11px; font-weight: 600; margin-bottom: 9px;
+  color: #64748b; text-transform: uppercase; letter-spacing: .07em;
+}
+.attr-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.attr-table th {
+  text-align: left; font-size: 10px; font-weight: 600; color: #475569;
+  padding: 3px 7px; text-transform: uppercase; letter-spacing: .05em;
+  border-bottom: 1px solid #1e2535;
+}
+.attr-table td { padding: 5px 7px; border-bottom: 1px solid #1a2235; }
+.attr-table tr:last-child td { border-bottom: none; }
+.met   { color: #4ade80; font-weight: 600; }
+.unmet { color: #f87171; font-weight: 600; }
+.no-min { color: #475569; }
+
+/* ── Priority tab ── */
+.prio-card {
+  background: #151c2b; border: 1px solid #1e2535;
+  border-radius: 10px; padding: .9rem; margin-bottom: 8px;
+}
+.prio-col-labels { display: grid; grid-template-columns: 1fr 90px 50px 72px 26px; gap: 6px; margin-bottom: 5px; }
+.prio-col-label  { font-size: 10px; color: #475569; text-transform: uppercase; letter-spacing: .05em; padding: 0 3px; }
+.prio-row        { display: grid; grid-template-columns: 1fr 90px 50px 72px 26px; gap: 6px; align-items: center; margin-bottom: 4px; }
+.prio-row select, .tier-target-select { font-size: 12px; background: #0f1117; color: #e2e8f0; border: 1px solid #2d3f5e; border-radius: 4px; padding: 2px 4px; }
+.prio-count-input {
+  width: 100%; font-size: 12px; padding: 2px 4px; text-align: center;
+  border: 1px solid #2d3f5e; border-radius: 4px;
+  background: #0f1117; color: #e2e8f0;
+}
+.tier-target-select { width: 100%; }
+.add-line-btn {
+  font-size: 12px; background: none; border: 1px dashed #2d3f5e;
+  border-radius: 6px; padding: 4px 12px; cursor: pointer; color: #64748b;
+  margin-top: 4px; transition: background 0.1s;
+}
+.add-line-btn:hover { background: #1a2235; }
+.prio-hint { font-size: 11px; color: #475569; margin-top: 4px; }
+.small-del-btn { font-size: 12px; background: none; border: none; color: #475569; cursor: pointer; padding: 2px 4px; border-radius: 3px; }
+.small-del-btn:hover { color: #ef4444; }
+
+/* ── Overview ── */
+.ov-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 1.5rem; }
+.metric-card { background: #151c2b; border: 1px solid #1e2535; border-radius: 10px; padding: .9rem; text-align: center; }
+.metric-val   { font-size: 24px; font-weight: 700; margin-bottom: 3px; color: #f1f5f9; }
+.metric-label { font-size: 11px; color: #64748b; }
+.ov-nikke { background: #151c2b; border: 1px solid #1e2535; border-radius: 10px; padding: .8rem; margin-bottom: 8px; }
+.prog-row { display: grid; grid-template-columns: 130px 1fr 38px; gap: 10px; align-items: center; font-size: 13px; margin-bottom: 6px; }
+.prog-bg  { height: 5px; background: #1a2235; border-radius: 3px; overflow: hidden; }
+.prog-fill { height: 100%; border-radius: 3px; background: #3b82f6; }
+.prog-pct { font-size: 11px; color: #64748b; text-align: right; }
+.pills { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.pill { font-size: 11px; padding: 2px 8px; border-radius: 5px; font-weight: 500; }
+.p-essential { background: #052e16; color: #4ade80; }
+.p-ideal     { background: #0c1f3f; color: #60a5fa; }
+.p-passable  { background: #3f2a06; color: #fbbf24; }
+.p-unmet     { background: #3f1010; color: #f87171; }
+
+/* ── Forms ── */
+.form-panel {
+  display: none; max-width: 320px; background: #151c2b;
+  border: 1px solid #1e2535; border-radius: 10px;
+  padding: .9rem; margin-top: 10px;
+}
+.form-panel.show { display: block; }
+.form-panel-title { font-size: 13px; font-weight: 600; margin-bottom: 12px; color: #f1f5f9; }
+.form-row { margin-bottom: 10px; }
+.form-label { font-size: 12px; color: #94a3b8; margin-bottom: 4px; display: block; }
+.form-input { width: 100%; font-size: 13px; padding: 6px 9px; background: #0f1117; border: 1px solid #2d3f5e; border-radius: 6px; color: #e2e8f0; }
+.form-row select { width: 100%; font-size: 13px; padding: 6px 9px; background: #0f1117; border: 1px solid #2d3f5e; border-radius: 6px; color: #e2e8f0; }
+.btn { font-size: 13px; padding: 6px 16px; border-radius: 6px; cursor: pointer; border: 1px solid #2d3f5e; background: none; color: #94a3b8; transition: background 0.1s; }
+.btn:hover { background: #1a2235; }
+.btn-primary { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+.btn-primary:hover { background: #2563eb; }
+.btn-row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
+.nikke-hdr { display: flex; align-items: center; gap: 9px; margin-bottom: 12px; }
+.avatar {
+  width: 34px; height: 34px; border-radius: 50%; background: #1e3a5f;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: #60a5fa; flex-shrink: 0;
+}
+.info-note {
+  font-size: 11px; color: #64748b; padding: 7px 10px;
+  background: #0f1117; border-radius: 6px; border: 1px solid #1e2535;
+}
+.section-label {
+  font-size: 11px; font-weight: 600; color: #475569;
+  text-transform: uppercase; letter-spacing: .07em; margin-bottom: 9px;
+}
+.empty-state { text-align: center; padding: 3rem 1rem; color: #475569; font-size: 13px; }
+.topbar-actions { display: flex; gap: 6px; align-items: center; }
+.elemental-toggle { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #94a3b8; cursor: pointer; padding: 4px 10px; border: 1px solid #2d3f5e; border-radius: 6px; }
+.elemental-toggle:has(input:checked) { border-color: #3b82f6; color: #60a5fa; }
+.btn-sm { font-size: 12px; padding: 4px 12px; border-radius: 6px; cursor: pointer; border: 1px solid #2d3f5e; background: none; color: #94a3b8; transition: background 0.1s; }
+.btn-sm:hover { background: #1a2235; color: #f1f5f9; }
+#nn-select { background: #0f1117; color: #e2e8f0; border: 1px solid #2d3f5e; border-radius: 6px; font-size: 13px; }
+#nn-select option { padding: 4px 8px; }
+#nn-select option:checked { background: #1e3a5f; color: #60a5fa; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div>
+      <div class="title">Solo Raid Gear Manager</div>
+      <div class="subtitle">Overload gear tracker &amp; reroll advisor</div>
+    </div>
+    <div class="topbar-actions">
+      <label class="elemental-toggle" title="Include Elemental Damage in gain calculations">
+        <input type="checkbox" id="elemental-chk" onchange="toggleElementalBoss(this.checked)" style="accent-color:#3b82f6"/>
+        <span>Elemental boss</span>
+      </label>
+      <button class="btn btn-sm" onclick="exportData()">⬇ Export</button>
+      <button class="btn btn-sm" onclick="document.getElementById('import-file').click()">⬆ Import</button>
+      <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)">
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('overview',event)">Overview</button>
+    <button class="tab" onclick="switchTab('roster',event)">Roster</button>
+    <button class="tab" onclick="switchTab('gear',event)">Gear Tracker</button>
+    <button class="tab" onclick="switchTab('priority',event)">Line Priorities</button>
+    <button class="tab" onclick="switchTab('raids',event)">Solo Raids</button>
+  </div>
+
+  <div id="overview" class="section active"></div>
+  <div id="roster"   class="section"></div>
+  <div id="gear"     class="section"></div>
+  <div id="priority" class="section"></div>
+  <div id="raids"    class="section"></div>
+</div>
+
+<script>
+// ============================================================
+//  CONSTANTS & GAME DATA
+// ============================================================
+
+const SLOTS = ['Helmet', 'Chest', 'Gloves', 'Boots'];
+
+const PRIORITY_TIERS = ['Essential', 'Ideal', 'Passable'];
+
+// Full Nikke roster from Prydwen.gg (name, burst, element)
+// Burst: I, II, III; Element: Fire, Water, Wind, Electric, Iron
+const NIKKE_DATABASE = [
+  {name:'2B',burst:'III',element:'Fire'},
+  {name:'A2',burst:'III',element:'Fire'},
+  {name:'Ada Wong',burst:'III',element:'Electric'},
+  {name:'Ade',burst:'II',element:'Wind'},
+  {name:'Ade: Agent Bunny',burst:'II',element:'Iron'},
+  {name:'Admi',burst:'II',element:'Wind'},
+  {name:'Alice',burst:'III',element:'Fire'},
+  {name:'Alice: Wonderland Bunny',burst:'I',element:'Water'},
+  {name:'Anchor',burst:'I',element:'Wind'},
+  {name:'Anchor: Innocent Maid',burst:'II',element:'Water'},
+  {name:'Anis',burst:'II',element:'Iron'},
+  {name:'Anis: Sparkling Summer',burst:'III',element:'Electric'},
+  {name:'Anis: Star',burst:'I',element:'Electric'},
+  {name:'Anne: Miracle Fairy',burst:'II',element:'Wind'},
+  {name:'Arcana',burst:'II',element:'Electric'},
+  {name:'Arcana: Fortune Mate',burst:'II',element:'Fire'},
+  {name:'Aria',burst:'II',element:'Water'},
+  {name:'Asuka Shikinami Langley',burst:'III',element:'Fire'},
+  {name:'Asuka Shikinami Langley: Wille',burst:'III',element:'Wind'},
+  {name:'Avistar',burst:'I',element:'Electric'},
+  {name:'Bay',burst:'II',element:'Fire'},
+  {name:'Bay (Treasure)',burst:'II',element:'Fire'},
+  {name:'Belorta',burst:'II',element:'Electric'},
+  {name:'Biscuit',burst:'II',element:'Electric'},
+  {name:'Blanc',burst:'II',element:'Wind'},
+  {name:'Bready',burst:'III',element:'Water'},
+  {name:'Brid',burst:'III',element:'Water'},
+  {name:'Brid: Silent Track',burst:'II',element:'Fire'},
+  {name:'Centi',burst:'II',element:'Iron'},
+  {name:'Centi (Treasure)',burst:'II',element:'Iron'},
+  {name:'Chime',burst:'II',element:'Iron'},
+  {name:'Chisato Nishikigi',burst:'III',element:'Iron'},
+  {name:'Cinderella',burst:'III',element:'Electric'},
+  {name:'Claire Redfield',burst:'I',element:'Electric'},
+  {name:'Clay',burst:'II',element:'Electric'},
+  {name:'Cocoa',burst:'I',element:'Fire'},
+  {name:'Crow',burst:'III',element:'Fire'},
+  {name:'Crown',burst:'II',element:'Iron'},
+  {name:'Crust',burst:'II',element:'Water'},
+  {name:'D',burst:'III',element:'Wind'},
+  {name:'D: Killer Wife',burst:'I',element:'Fire'},
+  {name:'Delta',burst:'II',element:'Wind'},
+  {name:'Delta: Ninja Thief',burst:'II',element:'Water'},
+  {name:'Diesel',burst:'II',element:'Wind'},
+  {name:'Diesel (Treasure)',burst:'II',element:'Wind'},
+  {name:'Diesel: Winter Sweets',burst:'III',element:'Fire'},
+  {name:'Dolla',burst:'II',element:'Wind'},
+  {name:'Dorothy',burst:'I',element:'Water'},
+  {name:'Dorothy: Serendipity',burst:'III',element:'Water'},
+  {name:'Drake',burst:'III',element:'Fire'},
+  {name:'Drake (Treasure)',burst:'III',element:'Fire'},
+  {name:'E.H.',burst:'III',element:'Wind'},
+  {name:'Ein',burst:'III',element:'Electric'},
+  {name:'Elegg',burst:'II',element:'Electric'},
+  {name:'Elegg: Boom and Shock',burst:'III',element:'Water'},
+  {name:'Emilia',burst:'III',element:'Water'},
+  {name:'Emma',burst:'I',element:'Fire'},
+  {name:'Emma: Tactical Upgrade',burst:'I',element:'Fire'},
+  {name:'Epinel',burst:'III',element:'Wind'},
+  {name:'Ether',burst:'I',element:'Electric'},
+  {name:'Eunhwa',burst:'II',element:'Fire'},
+  {name:'Eunhwa: Tactical Upgrade',burst:'II',element:'Fire'},
+  {name:'Eve',burst:'III',element:'Iron'},
+  {name:'Exia',burst:'I',element:'Electric'},
+  {name:'Exia (Treasure)',burst:'I',element:'Electric'},
+  {name:'Flora',burst:'II',element:'Electric'},
+  {name:'Folkwang',burst:'II',element:'Water'},
+  {name:'Frima',burst:'I',element:'Iron'},
+  {name:'Frima (Treasure)',burst:'I',element:'Iron'},
+  {name:'Grave',burst:'II',element:'Fire'},
+  {name:'Guillotine',burst:'III',element:'Electric'},
+  {name:'Guillotine: Winter Slayer',burst:'III',element:'Water'},
+  {name:'Guilty',burst:'II',element:'Wind'},
+  {name:'Harran',burst:'III',element:'Electric'},
+  {name:'Helm',burst:'III',element:'Water'},
+  {name:'Helm (Treasure)',burst:'III',element:'Water'},
+  {name:'Helm: Aquamarine',burst:'II',element:'Iron'},
+  {name:'Himeno',burst:'II',element:'Wind'},
+  {name:'Isabel',burst:'III',element:'Electric'},
+  {name:'Jackal',burst:'I',element:'Iron'},
+  {name:'Jill Valentine',burst:'III',element:'Electric'},
+  {name:'Julia',burst:'III',element:'Iron'},
+  {name:'Julia (Treasure)',burst:'III',element:'Iron'},
+  {name:'K',burst:'III',element:'Electric'},
+  {name:'Kilo',burst:'III',element:'Fire'},
+  {name:'Kurumi',burst:'I',element:'Iron'},
+  {name:'Label',burst:'I',element:'Iron'},
+  {name:'Laplace',burst:'III',element:'Iron'},
+  {name:'Laplace (Treasure)',burst:'III',element:'Iron'},
+  {name:'Leona',burst:'II',element:'Water'},
+  {name:'Liberalio',burst:'III',element:'Wind'},
+  {name:'Lily',burst:'II',element:'Wind'},
+  {name:'Liter',burst:'I',element:'Iron'},
+  {name:'Little Mermaid (Siren)',burst:'I',element:'Wind'},
+  {name:'Ludmilla',burst:'I',element:'Water'},
+  {name:'Ludmilla: Winter Owner',burst:'III',element:'Water'},
+  {name:'Maiden',burst:'III',element:'Electric'},
+  {name:'Maiden: Ice Rose',burst:'III',element:'Electric'},
+  {name:'Makima',burst:'II',element:'Water'},
+  {name:'Mana',burst:'III',element:'Wind'},
+  {name:'Marciana',burst:'II',element:'Iron'},
+  {name:'Mari Makinami Illustrious',burst:'II',element:'Electric'},
+  {name:'Mary',burst:'I',element:'Water'},
+  {name:'Mary: Bay Goddess',burst:'I',element:'Water'},
+  {name:'Mast',burst:'II',element:'Electric'},
+  {name:'Mast: Romantic Maid',burst:'II',element:'Water'},
+  {name:'Maxwell',burst:'III',element:'Iron'},
+  {name:'Mica',burst:'I',element:'Wind'},
+  {name:'Mica: Snow Buddy',burst:'I',element:'Iron'},
+  {name:'Mihara',burst:'III',element:'Water'},
+  {name:'Mihara: Bonding Chain',burst:'III',element:'Fire'},
+  {name:'Milk',burst:'I',element:'Water'},
+  {name:'Milk (Treasure)',burst:'I',element:'Water'},
+  {name:'Milk: Blooming Bunny',burst:'III',element:'Iron'},
+  {name:'Mint',burst:'II',element:'Iron'},
+  {name:'Miranda',burst:'I',element:'Fire'},
+  {name:'Miranda (Treasure)',burst:'I',element:'Fire'},
+  {name:'Misato Katsuragi',burst:'I',element:'Iron'},
+  {name:'Modernia',burst:'III',element:'Fire'},
+  {name:'Moran',burst:'I',element:'Electric'},
+  {name:'Moran (Treasure)',burst:'I',element:'Electric'},
+  {name:'Mori',burst:'II',element:'Wind'},
+  {name:'N102',burst:'I',element:'Water'},
+  {name:'Naga',burst:'II',element:'Electric'},
+  {name:'Nayuta',burst:'II',element:'Wind'},
+  {name:'Neon',burst:'I',element:'Fire'},
+  {name:'Neon: Blue Ocean',burst:'III',element:'Water'},
+  {name:'Neon: Vision Eye',burst:'III',element:'Electric'},
+  {name:'Nero',burst:'II',element:'Fire'},
+  {name:'Neve',burst:'III',element:'Water'},
+  {name:'Nihilister',burst:'II',element:'Fire'},
+  {name:'Noah',burst:'II',element:'Wind'},
+  {name:'Noir',burst:'III',element:'Wind'},
+  {name:'Noise',burst:'I',element:'Electric'},
+  {name:'Novel',burst:'II',element:'Iron'},
+  {name:'Pascal',burst:'I',element:'Iron'},
+  {name:'Pepper',burst:'I',element:'Wind'},
+  {name:'Phantom',burst:'III',element:'Water'},
+  {name:'Poli',burst:'II',element:'Water'},
+  {name:'Poli (Treasure)',burst:'II',element:'Water'},
+  {name:'Power',burst:'III',element:'Fire'},
+  {name:'Privaty',burst:'III',element:'Water'},
+  {name:'Privaty (Treasure)',burst:'III',element:'Water'},
+  {name:'Privaty: Unkind Maid',burst:'III',element:'Electric'},
+  {name:'Product 08',burst:'I',element:'Electric'},
+  {name:'Product 12',burst:'III',element:'Fire'},
+  {name:'Product 23',burst:'II',element:'Wind'},
+  {name:'Quency',burst:'II',element:'Electric'},
+  {name:'Quency: Escape Queen',burst:'III',element:'Water'},
+  {name:'Quiry',burst:'III',element:'Wind'},
+  {name:'Ram',burst:'I',element:'Wind'},
+  {name:'Rapi',burst:'III',element:'Fire'},
+  {name:'Rapi: Red Hood',burst:'III',element:'Fire'},
+  {name:'Rapunzel',burst:'I',element:'Iron'},
+  {name:'Rapunzel: Pure Grace',burst:'I',element:'Iron'},
+  {name:'Raven',burst:'III',element:'Iron'},
+  {name:'Red Hood',burst:'All',element:'Iron'},
+  {name:'Rei',burst:'I',element:'Water'},
+  {name:'Rei Ayanami',burst:'III',element:'Fire'},
+  {name:'Rei Ayanami (Tentative Name)',burst:'III',element:'Wind'},
+  {name:'Rem',burst:'II',element:'Water'},
+  {name:'Rosanna',burst:'I',element:'Electric'},
+  {name:'Rosanna: Chic Ocean',burst:'II',element:'Wind'},
+  {name:'Rouge',burst:'I',element:'Electric'},
+  {name:'Rumani',burst:'I',element:'Fire'},
+  {name:'Rupee',burst:'II',element:'Iron'},
+  {name:'Rupee: Winter Shopper',burst:'I',element:'Electric'},
+  {name:'Sakura',burst:'I',element:'Fire'},
+  {name:'Sakura Suzuhara',burst:'I',element:'Water'},
+  {name:'Sakura: Bloom in Summer',burst:'III',element:'Wind'},
+  {name:'Scarlet',burst:'III',element:'Electric'},
+  {name:'Scarlet: Black Shadow',burst:'III',element:'Wind'},
+  {name:'Signal',burst:'II',element:'Fire'},
+  {name:'Sin',burst:'II',element:'Electric'},
+  {name:'Snow Crane',burst:'II',element:'Water'},
+  {name:'Snow White',burst:'III',element:'Iron'},
+  {name:'Snow White: Heavy Arms',burst:'III',element:'Water'},
+  {name:'Snow White: Innocent Days',burst:'III',element:'Iron'},
+  {name:'Soda',burst:'I',element:'Fire'},
+  {name:'Soda: Twinkling Bunny',burst:'III',element:'Iron'},
+  {name:'Soldier EG',burst:'III',element:'Electric'},
+  {name:'Soldier FA',burst:'II',element:'Iron'},
+  {name:'Soldier OW',burst:'I',element:'Fire'},
+  {name:'Soline',burst:'III',element:'Iron'},
+  {name:'Soline: Frost Ticket',burst:'I',element:'Water'},
+  {name:'Sora',burst:'I',element:'Wind'},
+  {name:'Sugar',burst:'III',element:'Iron'},
+  {name:'Takina Inoue',burst:'II',element:'Iron'},
+  {name:'Tia',burst:'I',element:'Iron'},
+  {name:'Tove',burst:'I',element:'Water'},
+  {name:'Tove (Treasure)',burst:'I',element:'Water'},
+  {name:'Trina',burst:'II',element:'Electric'},
+  {name:'Trony',burst:'III',element:'Fire'},
+  {name:'Velvet',burst:'II',element:'Wind'},
+  {name:'Vesti',burst:'III',element:'Water'},
+  {name:'Vesti: Tactical Upgrade',burst:'III',element:'Fire'},
+  {name:'Viper',burst:'II',element:'Water'},
+  {name:'Viper (Treasure)',burst:'II',element:'Water'},
+  {name:'Volume',burst:'I',element:'Wind'},
+  {name:'Yan',burst:'I',element:'Fire'},
+  {name:'Yulha',burst:'III',element:'Fire'},
+  {name:'Yuni',burst:'II',element:'Fire'},
+  {name:'Zwei',burst:'I',element:'Electric'},
+  {name:'Zwei (Treasure)',burst:'I',element:'Electric'},
+  {name:'iDoll Flower',burst:'I',element:'Wind'},
+  {name:'iDoll Ocean',burst:'I',element:'Water'},
+  {name:'iDoll Sun',burst:'III',element:'Iron'},
+];
+
+// All possible overload stats
+const ALL_LINES = [
+  'ATK', 'Elemental Damage', 'Max Ammo', 'Charge Speed',
+  'Charge Damage', 'Critical Rate', 'Critical Damage', 'Hit Rate', 'DEF'
+];
+
+// Stats that are always trash — never worth keeping
+const ALWAYS_TRASH = new Set(['DEF']);
+
+// Stats whose values are expressed as percentages
+const IS_PCT = new Set([
+  'ATK', 'Elemental Damage', 'Charge Speed', 'Charge Damage',
+  'Critical Rate', 'Critical Damage', 'Hit Rate', 'DEF'
+]);
+
+// Prydwen minimum acceptable values per single line
+// (based on community guides — lines below this are considered weak rolls)
+const MIN_VAL = {
+  'Elemental Damage': 19.35,
+  'Max Ammo':         52.50,
+  'ATK':               9.70,
+  'Charge Speed':      4.04,
+  'Hit Rate':          9.70,
+};
+
+// Exact % values per tier (T1–T15) for each stat
+// Source: in-game probability table
+const TIER_TABLE = {
+  'Elemental Damage': [9.54,10.94,12.34,13.75,15.15,16.55,17.95,19.35,20.75,22.15,23.56,24.96,26.36,27.76,29.16],
+  'Hit Rate':         [4.77,5.47,6.18,6.88,7.59,8.29,9.00,9.70,10.40,11.11,11.81,12.52,13.22,13.93,14.63],
+  'Max Ammo':         [27.84,31.95,36.06,40.17,44.28,48.39,52.50,56.60,60.71,64.82,68.93,73.04,77.15,81.26,85.37],
+  'ATK':              [4.77,5.47,6.18,6.88,7.59,8.29,9.00,9.70,10.40,11.11,11.81,12.52,13.22,13.93,14.63],
+  'Charge Damage':    [4.77,5.47,6.18,6.88,7.59,8.29,9.00,9.70,10.40,11.11,11.81,12.52,13.22,13.93,14.63],
+  'Charge Speed':     [1.98,2.28,2.57,2.86,3.16,3.45,3.75,4.04,4.33,4.63,4.92,5.21,5.51,5.80,6.09],
+  'Critical Rate':    [2.30,2.64,2.98,3.32,3.66,4.00,4.35,4.69,5.03,5.37,5.71,6.05,6.39,6.73,7.07],
+  'Critical Damage':  [6.64,7.62,8.60,9.58,10.56,11.54,12.52,13.50,14.48,15.46,16.44,17.42,18.40,19.38,20.36],
+  'DEF':              [4.77,5.47,6.18,6.88,7.59,8.29,9.00,9.70,10.40,11.11,11.81,12.52,13.22,13.93,14.63],
+};
+
+// Probability that a stat roll lands in each tier
+// T1–5: 12% each, T6–10: 7% each, T11–15: 1% each
+// Index 0 unused; index 1 = T1, index 15 = T15
+const TIER_PROB = [0, 12,12,12,12,12, 7,7,7,7,7, 1,1,1,1,1];
+
+// Probability that a stat appears at all on each line
+// Line 1 always has a stat; Line 2 = 50% chance; Line 3 = 30% chance
+const LINE_APPEAR = [1.0, 0.5, 0.3];
+const LINE_CHANCE_LABELS = ['100%', '50%', '30%'];
+const LINE_CHANCE_CSS    = ['lc-100', 'lc-50', 'lc-30'];
+
+// Base % chance for each stat to appear on a line (sums to 100)
+// When a stat is already on the piece, the pool renormalizes across remaining stats
+const STAT_BASE_CHANCE = {
+  'ATK': 10, 'Elemental Damage': 10, 'Max Ammo': 12,
+  'Charge Speed': 12, 'Charge Damage': 12, 'Critical Rate': 12,
+  'Critical Damage': 10, 'Hit Rate': 12, 'DEF': 10,
+};
+
+
+// ============================================================
+//  PROBABILITY HELPERS
+// ============================================================
+
+/*
+ * Probability of hitting targetTier or above on a single Reset Attributes roll.
+ * Formula: sum of TIER_PROB[targetTier..15] / 100
+ */
+function probHitTargetTier(targetTier) {
+  let p = 0;
+  for (let t = targetTier; t <= 15; t++) p += TIER_PROB[t];
+  return p / 100;
+}
+
+/*
+ * Detect the tier of a rolled value for a given stat.
+ * Scans TIER_TABLE from T15 down and returns the first tier
+ * whose threshold is <= the rolled value.
+ */
+function getTier(stat, val) {
+  const thresholds = TIER_TABLE[stat];
+  if (!thresholds) return null;
+  const v = parseFloat(val);
+  if (isNaN(v)) return null;
+  for (let i = 14; i >= 0; i--) {
+    if (v >= thresholds[i] - 0.005) return i + 1; // tier is 1-indexed
+  }
+  return 1;
+}
+
+/*
+ * Visual badge info for a given tier number.
+ */
+function tierBadgeInfo(tier) {
+  if (!tier) return null;
+  if (tier >= 15) return { label: 'T15★', cls: 'tb-elite' };
+  if (tier >= 12) return { label: `T${tier}◆`, cls: 'tb-high' };
+  if (tier >= 6)  return { label: `T${tier}`,  cls: 'tb-mid'  };
+  return { label: `T${tier}`, cls: 'tb-low' };
+}
+
+/*
+ * Returns a normalized pool of stat probabilities, excluding stats already on the piece.
+ * This is because no stat can appear twice on the same gear piece.
+ *
+ * usedStats: Set of stat names already present on this piece
+ * Returns: { statName: normalizedFraction, ... }
+ */
+function remainingStatPool(usedStats) {
+  let total = 0;
+  const pool = {};
+  ALL_LINES.forEach(s => {
+    if (!usedStats.has(s)) {
+      pool[s] = STAT_BASE_CHANCE[s];
+      total  += STAT_BASE_CHANCE[s];
+    }
+  });
+  const normalized = {};
+  Object.entries(pool).forEach(([s, c]) => normalized[s] = c / total);
+  return normalized;
+}
+
+/*
+ * Given a normalized stat pool and a Nikke's priority list,
+ * returns the fraction of the pool that consists of Essential/Ideal stats.
+ * This fraction is used to estimate how likely a Change Effects roll
+ * lands a good stat on any given line.
+ */
+function goodStatFraction(pool, nikke) {
+  return nikke.priorities
+    .filter(p => p.tier === 'Essential' || p.tier === 'Ideal')
+    .reduce((sum, p) => sum + (pool[p.line] || 0), 0);
+}
+
+/*
+ * Probability that at least one of the given unlocked lines produces
+ * a good stat in a single Change Effects roll.
+ *
+ * unlockedLines: array of { appear: 0.3/0.5/1.0 } for each unlocked line
+ * goodFrac:      fraction of renormalized pool that is Essential/Ideal
+ *
+ * Formula:
+ *   P(good on line i) = appear[i] × goodFrac
+ *   P(no good on line i) = 1 - P(good on line i)
+ *   P(no good on any line) = ∏ P(no good on line i)
+ *   P(at least one good) = 1 - P(no good on any line)
+ */
+function pAtLeastOneGood(unlockedLines, goodFrac) {
+  let pNone = 1;
+  unlockedLines.forEach(l => { pNone *= (1 - l.appear * goodFrac); });
+  return 1 - pNone;
+}
+
+/*
+ * Expected rocks to land a good stat via Change Effects.
+ *
+ * Formula:
+ *   expectedRolls = ceil(1 / P(at least one good))
+ *   rocks = expectedRolls × (lockedCount + 1)
+ */
+function estChangeEffectsRocks(unlockedLines, goodFrac, lockedCount) {
+  if (!unlockedLines.length) return 0;
+  const p = pAtLeastOneGood(unlockedLines, goodFrac);
+  if (p <= 0) return 999;
+  return Math.round(1 / p) * rocksPerRoll(lockedCount);
+}
+
+/*
+ * Expected rocks to get N good unlocked lines to targetTier+ via Reset Attributes.
+ * Locks each line as it hits the target, then continues with the next.
+ *
+ * Formula (iterative):
+ *   For each remaining unlocked good line:
+ *     P(at least one of N lines hits target) = 1 - (1 - tProb)^N
+ *     rocks += round(1 / P) × rocksPerRoll(currentLocked)
+ *     currentLocked++ (just locked one)
+ */
+function estResetAttributesRocks(goodUnlockedCount, startLockedCount, targetTierProb) {
+  let rocks = 0;
+  let lockedCount = startLockedCount;
+  let remaining = goodUnlockedCount;
+  while (remaining > 0) {
+    const p = 1 - Math.pow(1 - targetTierProb, remaining);
+    rocks += Math.round(1 / p) * rocksPerRoll(lockedCount);
+    lockedCount++;
+    remaining--;
+  }
+  return rocks;
+}
+
+/*
+ * Rock cost per roll = number of locked lines + 1.
+ * 0 locked → 1 rock/roll
+ * 1 locked → 2 rocks/roll
+ * 2 locked → 3 rocks/roll
+ */
+function rocksPerRoll(lockedCount) {
+  return lockedCount + 1;
+}
+
+/*
+ * Expected value of a stat when hitting targetTier or above.
+ * Weighted average of tier values from targetTier..15, weighted by TIER_PROB.
+ */
+function expectedValAtTarget(stat, targetTier) {
+  const thresholds = TIER_TABLE[stat];
+  if (!thresholds) return 0;
+  let weightedSum = 0, totalProb = 0;
+  for (let t = targetTier; t <= 15; t++) {
+    weightedSum += thresholds[t - 1] * TIER_PROB[t];
+    totalProb += TIER_PROB[t];
+  }
+  return totalProb > 0 ? weightedSum / totalProb : 0;
+}
+
+/*
+ * Expected value of a stat across ALL tiers (T1-T15), weighted by TIER_PROB.
+ * This is what you expect from a fresh Change Effects roll — any tier can appear.
+ */
+function expectedValAnyTier(stat) {
+  const thresholds = TIER_TABLE[stat];
+  if (!thresholds) return 0;
+  let weightedSum = 0, totalProb = 0;
+  for (let t = 1; t <= 15; t++) {
+    weightedSum += thresholds[t - 1] * TIER_PROB[t];
+    totalProb += TIER_PROB[t];
+  }
+  return totalProb > 0 ? weightedSum / totalProb : 0;
+}
+
+/*
+ * Expected value gain from Reset Attributes on a line.
+ * Gain = expected value at target tier - current value.
+ * If elemental boss mode is off, Elemental Damage gain is weighted at 0.
+ */
+function resetGain(stat, currentVal, targetTier) {
+  if (stat === 'Elemental Damage' && !state.elementalBoss) return 0;
+  const expected = expectedValAtTarget(stat, targetTier);
+  const current = parseFloat(currentVal) || 0;
+  return Math.max(0, expected - current);
+}
+
+/*
+ * Expected value gain from Change Effects (landing a new good stat).
+ * Uses the weighted average across all good stats in the pool,
+ * assuming the new line will land at the average tier (weighted by TIER_PROB).
+ * targetTier is the minimum acceptable tier for the nikke's priorities.
+ * Excludes Elemental Damage from gain calculation if elementalBoss is off.
+ */
+function changeEffectsGain(nikke, pool, currentLines, sacrificedLines) {
+  // sacrificedLines: optional array of lines being sacrificed (for net gain calculation)
+  const goodPrios = nikke.priorities.filter(p => p.tier === 'Essential' || p.tier === 'Ideal');
+  if (!goodPrios.length) return { stat: '—', gain: 0, loss: 0, net: 0 };
+
+  // Count how many of each stat already exist across ALL gear (excluding sacrificed lines on this piece)
+  const statCountAcrossGear = {};
+  SLOTS.forEach(s => {
+    nikke.gear[s].lines.forEach(l => {
+      if (l.stat) statCountAcrossGear[l.stat] = (statCountAcrossGear[l.stat] || 0) + 1;
+    });
+  });
+  // Subtract sacrificed lines (they're being given up)
+  if (sacrificedLines) {
+    sacrificedLines.forEach(l => {
+      if (l.stat && statCountAcrossGear[l.stat]) statCountAcrossGear[l.stat]--;
+    });
+  }
+
+  // Calculate the LOSS from sacrificing good lines
+  let totalLoss = 0;
+  if (sacrificedLines && sacrificedLines.length) {
+    sacrificedLines.forEach(l => {
+      if (!l.stat || !l.val) return;
+      const cls = classifyLine(l.stat, nikke);
+      if (!isGoodLine(cls)) return; // only count loss of good stats
+      const currentVal = parseFloat(l.val) || 0;
+      if (currentVal <= 0) return;
+      // P(stat comes back on at least one sacrificed line)
+      const comebackFrac = pool[l.stat] || 0;
+      const evIfBack = expectedValAnyTier(l.stat); // comes back at random tier
+      // Average appear rate across sacrificed lines
+      const numSacLines = sacrificedLines.length;
+      const avgAppear = sacrificedLines.reduce((s, sl) => s + (LINE_APPEAR[sl.idx !== undefined ? sl.idx : 0] || 0.6), 0) / numSacLines;
+      const pComeBack = 1 - Math.pow(1 - comebackFrac * avgAppear, numSacLines);
+      let effectiveLoss = currentVal - (pComeBack * evIfBack);
+      if (l.stat === 'Elemental Damage' && !state.elementalBoss) effectiveLoss = 0;
+      if (effectiveLoss > 0) totalLoss += effectiveLoss;
+    });
+  }
+
+  // Calculate the GAIN from landing a new good stat
+  // Skip stats where priority count is already met
+  let totalWeight = 0, weightedGain = 0;
+  const gains = [];
+  goodPrios.forEach(p => {
+    const w = pool[p.line] || 0;
+    if (w <= 0) return;
+    // Check if this stat's count requirement is already met
+    const needed = parseInt(p.count) || 1;
+    const have = statCountAcrossGear[p.line] || 0;
+    if (have >= needed) return; // already have enough of this stat, no gain from another
+    const ev = expectedValAnyTier(p.line);
+    const existing = currentLines.find(l => l.stat === p.line);
+    const current = existing ? (parseFloat(existing.val) || 0) : 0;
+    let gain = Math.max(0, ev - current);
+    if (p.line === 'Elemental Damage' && !state.elementalBoss) gain = 0;
+    gains.push({ stat: p.line, gain, weight: w });
+    weightedGain += gain * w;
+    totalWeight += w;
+  });
+  if (totalWeight <= 0) return { stat: '—', gain: 0, loss: totalLoss, net: -totalLoss };
+
+  gains.sort((a, b) => b.weight - a.weight);
+  const grossGain = weightedGain / totalWeight;
+  const net = grossGain - totalLoss;
+  return { stat: gains[0].stat, gain: grossGain, loss: totalLoss, net };
+}
+
+
+// ============================================================
+//  LINE CLASSIFICATION
+// ============================================================
+
+function classifyLine(stat, nikke) {
+  if (!stat) return null;
+  if (ALWAYS_TRASH.has(stat)) return 'trash';
+  const p = nikke.priorities.find(p => p.line === stat);
+  if (!p) return 'unset';
+  return p.tier.toLowerCase(); // 'essential', 'ideal', 'passable'
+}
+
+function getTargetTier(stat, nikke) {
+  const p = nikke.priorities.find(p => p.line === stat);
+  return p ? parseInt(p.targetTier) || 11 : 11;
+}
+
+function isAtTarget(stat, val, nikke) {
+  const tier = getTier(stat, val);
+  if (!tier) return false;
+  return tier >= getTargetTier(stat, nikke);
+}
+
+function isAboveMinVal(stat, val) {
+  if (!(stat in MIN_VAL)) return true;
+  const v = parseFloat(val);
+  if (isNaN(v)) return false;
+  return v >= MIN_VAL[stat];
+}
+
+function isGoodLine(cls) {
+  return cls === 'essential' || cls === 'ideal';
+}
+
+
+// ============================================================
+//  VERDICT ENGINE
+//  Produces a recommendation object for a single gear slot.
+// ============================================================
+
+function getVerdict(nikke, slot) {
+  const lines = nikke.gear[slot].lines;
+  if (lines.every(l => !l.stat)) return null;
+
+  // Annotate each line with derived info
+  const ann = lines.map((l, i) => {
+    const cls       = l.stat ? classifyLine(l.stat, nikke) : null;
+    const tier      = l.stat && l.val ? getTier(l.stat, l.val) : null;
+    const targetTier = l.stat ? getTargetTier(l.stat, nikke) : 11;
+    const atTarget  = l.stat && l.val ? isAtTarget(l.stat, l.val, nikke) : false;
+    const good      = isGoodLine(cls);
+    return { ...l, idx: i, cls, tier, targetTier, atTarget, isGood: good, isSac: !good, appear: LINE_APPEAR[i] };
+  });
+
+  const lockedCount   = ann.filter(l => l.locked && l.stat).length;
+  const goodLines     = ann.filter(l => l.isGood);
+  const goodBelowTgt  = goodLines.filter(l => l.stat && l.val && !l.atTarget);
+  const usedStats     = new Set(ann.filter(l => l.stat).map(l => l.stat));
+
+  // Helper: good stat fraction for a pool that excludes usedStats + alsoExclude
+  function goodFrac(alsoExclude = []) {
+    const pool = remainingStatPool(new Set([...usedStats, ...alsoExclude]));
+    return goodStatFraction(pool, nikke);
+  }
+
+  // Helper: list of good stat names for display
+  const goodStatNames = nikke.priorities
+    .filter(p => p.tier === 'Essential' || p.tier === 'Ideal')
+    .map(p => p.line).join('/') || 'good stats';
+
+  const lineName = l => `Line ${l.idx + 1} (${LINE_CHANCE_LABELS[l.idx]}) — ${l.stat}`;
+
+  // ── CASE 1: 2+ good lines already at target ──────────────
+  const allGoodAtTarget = goodLines.length >= 2 && goodBelowTgt.length === 0 && !goodLines.some(l => l.stat && !l.val);
+  if (allGoodAtTarget) {
+    const steps = [];
+    // Lock any good lines not yet locked (Line 3 first — hardest to get)
+    goodLines.filter(l => !l.locked).sort((a, b) => b.idx - a.idx)
+      .forEach(l => steps.push(`Lock ${lineName(l)}`));
+    // Optional: fish for a 3rd good line on sacrificeable slots
+    const sacUnlocked = ann.filter(l => l.isSac && l.stat && !l.locked);
+    if (sacUnlocked.length && goodLines.length < 3) {
+      const postLocked = lockedCount + goodLines.filter(l => !l.locked).length;
+      const gf = goodFrac(goodLines.filter(l => !l.locked).map(l => l.stat));
+      const fr = estChangeEffectsRocks(sacUnlocked.map(l => ({ appear: l.appear })), gf, postLocked);
+      steps.push(`Optional: Change Effects on ${sacUnlocked.map(l => `Line ${l.idx + 1}`).join(', ')} for a 3rd good line — ~${fr} rocks`);
+    }
+    if (!steps.length) steps.push('This piece is complete — no action needed.');
+    return { label: `Keep — ${goodLines.length} good line${goodLines.length > 1 ? 's' : ''} at target`, steps, cls: 'v-keep', rocks: 0 };
+  }
+
+  // ── CASE 2: At least 1 good line exists ──────────────────
+  if (goodLines.length >= 1) {
+    // Lines to lock immediately:
+    //   (a) already at target tier, OR
+    //   (b) T12+ even if below target — too rare to risk resetting unlocked
+    const lockNow = goodLines
+      .filter(l => !l.locked && (l.atTarget || (l.tier && l.tier >= 12)))
+      .sort((a, b) => b.idx - a.idx); // Line 3 priority
+
+    const lockedAfter = lockedCount + lockNow.length;
+    const lockSteps = lockNow.map(l =>
+      `Lock ${lineName(l)}` +
+      (l.tier >= 12 && !l.atTarget
+        ? ` — T${l.tier} is rare, protect before resetting`
+        : ` — at target T${l.targetTier} ✓`)
+    );
+
+    // Lines that need Reset Attributes (good, not locked, not T12+, have a value)
+    const toReset = goodBelowTgt.filter(l => !l.locked && !(l.tier && l.tier >= 12));
+    const sacUnlocked = ann.filter(l => l.isSac && !l.locked);
+
+    // ── Sub-case 2a: Good lines exist but values below target ──
+    if (toReset.length > 0) {
+      // Option A: Reset Attributes to fix values
+      const optASteps = [...lockSteps];
+      optASteps.push(`Reset Attributes — ${rocksPerRoll(lockedAfter)} rock${rocksPerRoll(lockedAfter) > 1 ? 's' : ''}/roll`);
+      toReset.forEach(l => optASteps.push(
+        `  → ${l.stat} on Line ${l.idx + 1}: needs T${l.targetTier}+ (currently T${l.tier || '?'} at ${l.val}%)`
+      ));
+      optASteps.push(`Lock each line immediately once it hits T${toReset[0].targetTier}+`);
+      const tProb    = probHitTargetTier(toReset[0].targetTier);
+      const resetRocks = estResetAttributesRocks(toReset.length, lockedAfter, tProb);
+      let fishRocksA = 0;
+      if (goodLines.length < 2) {
+        // Still need a second good line after fixing values
+        const postResetLocked = lockedAfter + toReset.length;
+        const gf = goodFrac([...lockNow.map(l => l.stat), ...toReset.map(l => l.stat)]);
+        const fl = sacUnlocked.map(l => ({ appear: l.appear }));
+        fishRocksA = estChangeEffectsRocks(fl, gf, postResetLocked);
+        if (fl.length) optASteps.push(`Then Change Effects for a 2nd good line — ~${fishRocksA} rocks`);
+      }
+
+      // Option B: Sacrifice below-target lines + fish for better via Change Effects
+      const optBSteps = [...lockSteps];
+      const sacrificing = [...sacUnlocked, ...toReset]
+        .filter((l, i, a) => a.findIndex(x => x.idx === l.idx) === i); // deduplicate
+      const gfB = goodFrac(lockNow.map(l => l.stat));
+      const fishRocksB = estChangeEffectsRocks(sacrificing.map(l => ({ appear: l.appear })), gfB, lockedAfter);
+      optBSteps.push(`Change Effects on ${sacrificing.length} unlocked line(s) — ${rocksPerRoll(lockedAfter)} rock${rocksPerRoll(lockedAfter) > 1 ? 's' : ''}/roll`);
+      toReset.forEach(l => optBSteps.push(`  ⚠ Sacrificing ${l.stat} T${l.tier || '?'} on Line ${l.idx + 1}`));
+      optBSteps.push(`Priority: Line 3 (30%) → Line 2 (50%) → Line 1 (100%) last`);
+      optBSteps.push(`P(${goodStatNames}) per line: ${(gfB * 100).toFixed(1)}% — then random tier (avg value shown in gain)`);
+      optBSteps.push(`Expected ~${fishRocksB} rocks`);
+
+      // Recommend A if: sacrificing an Essential line, 2 good lines, below-target line is T9+, or high-tier lines need locking
+      const sacrificingEssential = toReset.some(l => classifyLine(l.stat, nikke) === 'essential');
+      const recommendA = sacrificingEssential || goodLines.length >= 2 || toReset.some(l => l.tier && l.tier >= 9) || lockNow.length > 0;
+
+      // Calculate gain for Option A (reset to target)
+      const gainADetails = toReset.map(l => {
+        const g = resetGain(l.stat, l.val, l.targetTier);
+        return { stat: l.stat, gain: g };
+      }).filter(x => x.gain > 0);
+      const gainALabel = gainADetails.length
+        ? gainADetails.map(x => `${x.stat} +${x.gain.toFixed(2)}%`).join(', ')
+        : 'no effective gain';
+      // Calculate gain for Option B (new good stat via change effects)
+      const poolB = remainingStatPool(new Set([...usedStats, ...lockNow.map(l => l.stat)]));
+      const ceGainB = changeEffectsGain(nikke, poolB, lines, sacrificing);
+      let gainBLabel = 'no effective gain';
+      if (ceGainB.net > 0) {
+        gainBLabel = `net ${ceGainB.stat} +${ceGainB.net.toFixed(2)}%`;
+      } else if (ceGainB.net <= 0 && ceGainB.gain > 0) {
+        gainBLabel = `${ceGainB.stat} +${ceGainB.gain.toFixed(2)}% gain, −${ceGainB.loss.toFixed(2)}% loss = net ${ceGainB.net.toFixed(2)}%`;
+      }
+
+      return {
+        label: goodLines.length >= 2
+          ? `${goodLines.length} good lines — value(s) below target`
+          : `1 good line — fix value or fish for better`,
+        cls: 'v-ok',
+        options: [
+          { title: 'Option A — Reset Attributes to fix value(s)', steps: optASteps, rocks: resetRocks + fishRocksA, recommended: recommendA, gain: gainALabel },
+          { title: 'Option B — Sacrifice & Change Effects',        steps: optBSteps, rocks: fishRocksB,             recommended: !recommendA, gain: gainBLabel },
+        ],
+      };
+    }
+
+    // ── Sub-case 2b: 1 good line at target, need a second ──
+    if (goodLines.length < 2) {
+      const steps = [...lockSteps];
+      const fishLines = sacUnlocked
+        .filter(l => !lockNow.find(lk => lk.idx === l.idx))
+        .map(l => ({ appear: l.appear }));
+      const gf = goodFrac(lockNow.map(l => l.stat));
+      steps.push(`Change Effects on ${fishLines.length} unlocked line(s) — ${rocksPerRoll(lockedAfter)} rock${rocksPerRoll(lockedAfter) > 1 ? 's' : ''}/roll`);
+      steps.push(`All passable/trash/empty lines are sacrificeable`);
+      steps.push(`Priority: Line 3 (30%) → Line 2 (50%) → Line 1 (100%) last`);
+      steps.push(`P(${goodStatNames}) per line: ${(gf * 100).toFixed(1)}% — then random tier (avg value shown in gain)`);
+      const fishRocks = estChangeEffectsRocks(fishLines, gf, lockedAfter);
+      steps.push(`Expected ~${fishRocks} rocks`);
+      const poolCE = remainingStatPool(new Set([...usedStats, ...lockNow.map(l => l.stat)]));
+      const sacForGain = sacUnlocked.filter(l => !lockNow.find(lk => lk.idx === l.idx));
+      const ceGain = changeEffectsGain(nikke, poolCE, lines, sacForGain);
+      let ceGainLabel = 'no effective gain';
+      if (ceGain.net > 0) {
+        ceGainLabel = `net ${ceGain.stat} +${ceGain.net.toFixed(2)}%`;
+      } else if (ceGain.gain > 0) {
+        ceGainLabel = `${ceGain.stat} +${ceGain.gain.toFixed(2)}%`;
+      }
+      return { label: '1 good line — need a second', steps, cls: 'v-ok', rocks: fishRocks, gain: ceGainLabel };
+    }
+  }
+
+  // ── CASE 3: No good lines at all ─────────────────────────
+  const pool = remainingStatPool(usedStats);
+  const gf   = goodStatFraction(pool, nikke);
+  const fl   = ann.map(l => ({ appear: l.appear }));
+  const fishRocks = estChangeEffectsRocks(fl, gf, lockedCount);
+  const sacStats  = ann.filter(l => l.stat).map(l => l.stat);
+  const ceGain3 = changeEffectsGain(nikke, pool, lines);
+  return {
+    label: 'No Essential/Ideal lines — Change Effects freely',
+    steps: [
+      `No locks needed — ${rocksPerRoll(lockedCount)} rock/roll`,
+      `Priority: Line 3 (30%) → Line 2 (50%) → Line 1 (100%) last`,
+      `P(${goodStatNames}) per line: ${(gf * 100).toFixed(1)}% — then random tier (avg value shown in gain)`,
+      `Expected ~${fishRocks} rocks to land a first good stat`,
+      ...(sacStats.length ? [`Current lines (${sacStats.join(', ')}) — all sacrificeable`] : []),
+    ],
+    cls: 'v-reroll',
+    rocks: fishRocks,
+    gain: ceGain3.gain > 0 ? `${ceGain3.stat} +${ceGain3.gain.toFixed(2)}%` : 'no effective gain',
+  };
+}
+
+
+// ============================================================
+//  HELPER FUNCTIONS
+// ============================================================
+
+function scorePiece(nikke, slot) {
+  const lines = nikke.gear[slot].lines;
+  if (lines.every(l => !l.stat)) return null;
+  let good = 0, trash = 0;
+  lines.forEach(l => {
+    if (!l.stat) return;
+    const c = classifyLine(l.stat, nikke);
+    if (isGoodLine(c)) good++; else trash++;
+  });
+  return { good, trash };
+}
+
+function dotStatus(nikke, slot) {
+  const v = getVerdict(nikke, slot);
+  if (!v) return 'none';
+  if (v.cls === 'v-keep')   return 'done';
+  if (v.cls === 'v-ok')     return 'partial';
+  return 'warn';
+}
+
+function attrTotals(nikke) {
+  const t = {};
+  SLOTS.forEach(s => nikke.gear[s].lines.forEach(l => {
+    if (!l.stat || !l.val) return;
+    const v = parseFloat(l.val);
+    if (isNaN(v)) return;
+    t[l.stat] = (t[l.stat] || 0) + v;
+  }));
+  return t;
+}
+
+// Minimum total value expected across all 4 gear pieces
+// = priority count × per-line minimum
+function minTotalVal(nikke, stat) {
+  if (!(stat in MIN_VAL)) return null;
+  const p = nikke.priorities.find(p => p.line === stat);
+  if (!p) return null;
+  return (parseInt(p.count) || 1) * MIN_VAL[stat];
+}
+
+function initials(name) {
+  return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+}
+
+/*
+ * Get the efficiency rank of a specific nikke+slot across all nikkes.
+ * Returns 0 if the slot is done or has no valid ranking.
+ */
+function getSlotRank(nikkeId, slot) {
+  const rankings = [];
+  state.nikkes.forEach(n => {
+    if (!n.priorities.length) return;
+    SLOTS.forEach(s => {
+      const v = getVerdict(n, s);
+      if (!v || v.cls === 'v-keep') return;
+      let rocks = 0, gainTotal = 0;
+      if (v.options) {
+        const rec = v.options.find(o => o.recommended) || v.options[0];
+        rocks = rec.rocks;
+        const netMatch = rec.gain.match(/net\s+(?:\S+\s+)?([+-]?\d+\.?\d*)%/);
+        if (netMatch) gainTotal = parseFloat(netMatch[1]);
+        else {
+          const matches = rec.gain.match(/\+(\d+\.?\d*)%/g);
+          if (matches) gainTotal = matches.reduce((sum, m) => sum + parseFloat(m.replace('+','').replace('%','')), 0);
+        }
+      } else {
+        rocks = v.rocks;
+        const netMatch = (v.gain || '').match(/net\s+(?:\S+\s+)?([+-]?\d+\.?\d*)%/);
+        if (netMatch) gainTotal = parseFloat(netMatch[1]);
+        else {
+          const matches = (v.gain || '').match(/\+(\d+\.?\d*)%/g);
+          if (matches) gainTotal = matches.reduce((sum, m) => sum + parseFloat(m.replace('+','').replace('%','')), 0);
+        }
+      }
+      if (rocks <= 0 || gainTotal <= 0) return;
+      rankings.push({ nikkeId: n.id, slot: s, efficiency: gainTotal / rocks });
+    });
+  });
+  rankings.sort((a, b) => b.efficiency - a.efficiency);
+  const idx = rankings.findIndex(r => r.nikkeId === nikkeId && r.slot === slot);
+  return idx >= 0 ? idx + 1 : 0;
+}
+
+
+// ============================================================
+//  STATE & PERSISTENCE
+// ============================================================
+
+let state = { nikkes: [], selGear: null, selPrio: null, elementalBoss: true, raids: [], selRaid: null, selRaidEdit: null, rankSort: 'efficiency' };
+
+// Convert Roman numeral burst to number (I→1, II→2, III→3, All→All)
+function burstNum(b) {
+  if (b === 'III' || b === '3') return '3';
+  if (b === 'II' || b === '2') return '2';
+  if (b === 'I' || b === '1') return '1';
+  return b; // 'All' or anything else
+}
+
+function save() {
+  try { localStorage.setItem('nikke_v8', JSON.stringify(state)); } catch(e) {}
+}
+
+function load() {
+  try {
+    const d = localStorage.getItem('nikke_v8');
+    if (d) state = JSON.parse(d);
+  } catch(e) {}
+  if (!state.nikkes) state.nikkes = [];
+  if (state.elementalBoss === undefined) state.elementalBoss = true;
+  if (!state.raids) state.raids = [];
+  if (state.selRaid === undefined) state.selRaid = null;
+  if (state.selRaidEdit === undefined) state.selRaidEdit = null;
+  // Migrate old data
+  state.nikkes.forEach(n => {
+    n.id = n.id.replace('.', ''); // fix IDs with decimal points
+    // Migrate cls → element (look up from database if possible)
+    if (!n.element) {
+      const dbEntry = NIKKE_DATABASE.find(e => e.name === n.name);
+      n.element = dbEntry ? dbEntry.element : '';
+      if (dbEntry && !n.burst) n.burst = dbEntry.burst;
+    }
+    n.priorities.forEach(p => {
+      if (!p.targetTier) p.targetTier = 11;
+      if (!p.count) p.count = 1;
+    });
+    SLOTS.forEach(s => {
+      if (!n.gear[s]) n.gear[s] = { lines: [{stat:'',val:'',locked:false},{stat:'',val:'',locked:false},{stat:'',val:'',locked:false}] };
+      n.gear[s].lines.forEach(l => { if (l.locked === undefined) l.locked = false; });
+    });
+  });
+  save();
+}
+
+// ── Export / Import ──────────────────────────────────────────
+function exportData() {
+  const json = JSON.stringify(state, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `nikke_gear_backup_${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const imported = JSON.parse(e.target.result);
+      if (!imported.nikkes || !Array.isArray(imported.nikkes)) {
+        alert('Invalid backup file — missing nikkes array.');
+        return;
+      }
+      if (!confirm(`This will replace your current data (${state.nikkes.length} Nikke${state.nikkes.length !== 1 ? 's' : ''}) with the imported data (${imported.nikkes.length} Nikke${imported.nikkes.length !== 1 ? 's' : ''}). Continue?`)) return;
+      state = imported;
+      save();
+      render();
+    } catch(err) {
+      alert('Failed to parse file: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = ''; // reset so same file can be re-imported
+}
+
+function mkNikke(name, burst, element) {
+  const gear = {};
+  SLOTS.forEach(s => {
+    gear[s] = { lines: [
+      { stat: '', val: '', locked: false },
+      { stat: '', val: '', locked: false },
+      { stat: '', val: '', locked: false },
+    ]};
+  });
+  // ID uses no decimal point (avoids inline onclick breakage)
+  return { id: 'n' + Date.now() + Math.floor(Math.random() * 1000000), name, burst, element, gear, priorities: [
+    { line: 'ATK', tier: 'Essential', count: 4, targetTier: 11 },
+    { line: 'Elemental Damage', tier: 'Essential', count: 4, targetTier: 11 },
+  ] };
+}
+
+
+// ============================================================
+//  DELETE WITH INLINE CONFIRM
+//  (browser confirm() is blocked in iframes, so we use inline UI)
+// ============================================================
+
+let pendingDeleteId = null;
+
+function requestDelete(id) {
+  if (pendingDeleteId && pendingDeleteId !== id) {
+    hideDeleteConfirm(pendingDeleteId);
+  }
+  pendingDeleteId = id;
+  const el = document.getElementById('del-confirm-' + id);
+  if (el) el.classList.add('show');
+}
+
+function hideDeleteConfirm(id) {
+  const el = document.getElementById('del-confirm-' + id);
+  if (el) el.classList.remove('show');
+  if (pendingDeleteId === id) pendingDeleteId = null;
+}
+
+function doDelete(id) {
+  state.nikkes = state.nikkes.filter(n => n.id !== id);
+  if (state.selGear === id) state.selGear = null;
+  if (state.selPrio === id) state.selPrio = null;
+  pendingDeleteId = null;
+  save(); render();
+}
+
+
+// ============================================================
+//  RENDER: OVERVIEW
+// ============================================================
+
+function renderOverview() {
+  const el = document.getElementById('overview');
+  const nk = state.nikkes;
+  let total = nk.length * 4, done = 0, partial = 0;
+  nk.forEach(n => SLOTS.forEach(s => {
+    const st = dotStatus(n, s);
+    if (st === 'done') done++; else if (st === 'partial') partial++;
+  }));
+  const pct = total ? Math.round((done / total) * 100) : 0;
+
+  const rows = nk.length ? nk.map(n => {
+    const d = SLOTS.filter(s => dotStatus(n, s) === 'done').length;
+    const p = SLOTS.filter(s => dotStatus(n, s) === 'partial').length;
+    const fill = Math.round(((d + p * 0.5) / 4) * 100);
+    const totals = attrTotals(n);
+    const pills = n.priorities.filter(p => p.line && p.tier !== 'Passable').map(p => {
+      const tot = totals[p.line] || 0;
+      const min = minTotalVal(n, p.line);
+      const met = min === null || tot >= min;
+      const pcls = tot === 0 ? 'p-passable' : met ? 'p-essential' : 'p-unmet';
+      return `<span class="pill ${pcls}">${p.line}: ${tot > 0 ? tot.toFixed(2) + '%' : '—'}${min !== null ? ' / min ' + min.toFixed(2) + '%' : ''}</span>`;
+    }).join('');
+    return `<div class="ov-nikke">
+      <div class="prog-row">
+        <div style="font-size:13px;font-weight:600;color:#f1f5f9">${n.name} <span style="font-size:11px;color:#64748b;font-weight:400">${n.element || ''} · B${burstNum(n.burst)}</span></div>
+        <div class="prog-bg"><div class="prog-fill" style="width:${fill}%"></div></div>
+        <div class="prog-pct">${d}/4</div>
+      </div>
+      <div class="pills">${pills || '<span style="font-size:11px;color:#334155">Set line priorities to see totals</span>'}</div>
+    </div>`;
+  }).join('') : '<div class="empty-state">No Nikkes added yet — go to Roster to add your team</div>';
+
+  // Build efficiency ranking: gain% per rock for each incomplete slot
+  // If a raid is selected, filter to only those nikkes and weight by damage
+  const selRaid = state.selRaid ? state.raids.find(r => r.id === state.selRaid) : null;
+  const raidNikkeIds = selRaid ? new Set(selRaid.entries.map(e => e.nikkeId)) : null;
+  const raidDmgMap = {};
+  if (selRaid) selRaid.entries.forEach(e => { raidDmgMap[e.nikkeId] = e.damage || 0; });
+
+  const rankings = [];
+  nk.forEach(n => {
+    if (!n.priorities.length) return;
+    if (raidNikkeIds && !raidNikkeIds.has(n.id)) return; // filter by raid
+    SLOTS.forEach(slot => {
+      const v = getVerdict(n, slot);
+      if (!v || v.cls === 'v-keep') return; // skip done slots
+      let rocks = 0, gainTotal = 0, gainLabel = '';
+      if (v.options) {
+        const rec = v.options.find(o => o.recommended) || v.options[0];
+        rocks = rec.rocks;
+        gainLabel = rec.gain;
+        const netMatch = rec.gain.match(/net\s+(?:\S+\s+)?([+-]?\d+\.?\d*)%/);
+        if (netMatch) {
+          gainTotal = parseFloat(netMatch[1]);
+        } else {
+          const matches = rec.gain.match(/\+(\d+\.?\d*)%/g);
+          if (matches) gainTotal = matches.reduce((s, m) => s + parseFloat(m.replace('+','').replace('%','')), 0);
+        }
+      } else {
+        rocks = v.rocks;
+        gainLabel = v.gain || '';
+        const netMatch = (v.gain || '').match(/net\s+(?:\S+\s+)?([+-]?\d+\.?\d*)%/);
+        if (netMatch) {
+          gainTotal = parseFloat(netMatch[1]);
+        } else {
+          const matches = (v.gain || '').match(/\+(\d+\.?\d*)%/g);
+          if (matches) gainTotal = matches.reduce((s, m) => s + parseFloat(m.replace('+','').replace('%','')), 0);
+        }
+      }
+      if (rocks <= 0 || gainTotal <= 0) return;
+      // Weight by damage if raid selected
+      const dmg = raidDmgMap[n.id] || 0;
+      const weightedGain = dmg > 0 ? (gainTotal / 100) * dmg : gainTotal;
+      const efficiency = weightedGain / rocks;
+      rankings.push({ nikkeId: n.id, nikke: n.name, slot, rocks, gain: gainTotal, gainLabel, efficiency, dmg, weightedGain });
+    });
+  });
+  rankings.sort((a, b) => b.efficiency - a.efficiency);
+
+  // Raid selector dropdown
+  const raidOpts = state.raids.map(r => `<option value="${r.id}" ${state.selRaid === r.id ? 'selected' : ''}>${r.name}</option>`).join('');
+  const raidSelector = state.raids.length ? `
+    <select class="form-input" style="font-size:12px;padding:3px 8px;width:auto;display:inline-block;margin-left:8px" onchange="selectRaidFilter(this.value)">
+      <option value="">All Nikkes</option>${raidOpts}
+    </select>` : '';
+
+  const effLabel = selRaid ? 'dmg/rock' : '%/rock';
+
+  // Sort rankings by selected column
+  const sortBy = state.rankSort || 'efficiency';
+  if (sortBy === 'dmgGain') {
+    rankings.sort((a, b) => ((b.gain / 100 * (b.dmg || 0)) - (a.gain / 100 * (a.dmg || 0))));
+  } else if (sortBy === 'dmg') {
+    rankings.sort((a, b) => (b.dmg || 0) - (a.dmg || 0));
+  } else {
+    rankings.sort((a, b) => b.efficiency - a.efficiency);
+  }
+
+  const sortArrow = (col) => sortBy === col ? ' ▼' : '';
+  const rankingHtml = rankings.length ? `
+    <div class="section-label" style="margin-top:1.5rem">Rock efficiency ranking${raidSelector} <span style="font-size:10px;color:#475569;font-weight:400">(${selRaid ? 'damage gain per rock' : 'gain% per rock'}, higher = better)</span></div>
+    <table class="attr-table" style="width:100%">
+      <tr><th>#</th><th>Nikke</th><th>Slot</th><th>Rocks</th><th>Gain</th>${selRaid ? `<th class="sort-header" onclick="setRankSort('dmg')">DMG${sortArrow('dmg')}</th><th class="sort-header" onclick="setRankSort('dmgGain')">DMG Gain${sortArrow('dmgGain')}</th>` : ''}<th class="sort-header" onclick="setRankSort('efficiency')">Efficiency${sortArrow('efficiency')}</th></tr>
+      ${rankings.map((r, i) => `<tr class="rank-row" onclick="goToGearSlot('${r.nikkeId}','${r.slot}')">
+        <td style="color:#475569">${i + 1}</td>
+        <td style="font-weight:500">${r.nikke}</td>
+        <td>${r.slot}</td>
+        <td>~${r.rocks}</td>
+        <td style="color:#4ade80">${r.gainLabel}</td>
+        ${selRaid ? `<td style="color:#94a3b8">${r.dmg ? r.dmg + 'M' : '—'}</td><td style="color:#60a5fa;font-weight:600">${r.dmg ? '+' + (r.gain / 100 * r.dmg).toFixed(2) + 'M' : '—'}</td>` : ''}
+        <td style="font-weight:700;color:${selRaid ? (r.efficiency >= 0.5 ? '#4ade80' : r.efficiency >= 0.1 ? '#fbbf24' : '#f87171') : (r.efficiency >= 1 ? '#4ade80' : r.efficiency >= 0.3 ? '#fbbf24' : '#f87171')}">${selRaid ? r.efficiency.toFixed(2) + 'M/rock' : r.efficiency.toFixed(3) + '%/rock'}</td>
+      </tr>`).join('')}
+    </table>` : `<div class="section-label" style="margin-top:1.5rem">Rock efficiency ranking${raidSelector}</div><div style="font-size:12px;color:#475569">No actionable slots to rank</div>`;
+
+  el.innerHTML = `
+    <div class="ov-grid">
+      <div class="metric-card"><div class="metric-val">${nk.length}</div><div class="metric-label">Nikkes</div></div>
+      <div class="metric-card"><div class="metric-val" style="color:#4ade80">${done}</div><div class="metric-label">Slots done</div></div>
+      <div class="metric-card"><div class="metric-val" style="color:#f59e0b">${partial}</div><div class="metric-label">In progress</div></div>
+      <div class="metric-card"><div class="metric-val">${pct}%</div><div class="metric-label">Completion</div></div>
+    </div>
+    <div class="section-label">Team status</div>
+    ${rows}
+    ${rankingHtml}`;
+}
+
+function toggleElementalBoss(checked) {
+  state.elementalBoss = checked;
+  save();
+  render();
+}
+
+function selectRaidFilter(raidId) {
+  state.selRaid = raidId || null;
+  save();
+  renderOverview();
+}
+
+function setRankSort(col) {
+  state.rankSort = col;
+  renderOverview();
+}
+
+
+// ============================================================
+//  RENDER: ROSTER
+// ============================================================
+
+function renderRoster() {
+  const el = document.getElementById('roster');
+  const cards = state.nikkes.map(n => {
+    const dots = SLOTS.map(s => `<div class="dot ${dotStatus(n, s)}" title="${s}"></div>`).join('');
+    return `<div class="nikke-card">
+      <div style="display:flex;justify-content:space-between;align-items:start">
+        <div><div class="nikke-name">${n.name}</div><div class="nikke-meta">${n.element || ''} · B${burstNum(n.burst)}</div></div>
+        <button class="del-btn" onclick="requestDelete('${n.id}')" title="Remove">✕</button>
+      </div>
+      <div class="gear-dots">${dots}</div>
+      <div class="del-confirm" id="del-confirm-${n.id}">
+        Remove ${n.name}?
+        <button class="del-confirm-yes" onclick="doDelete('${n.id}')">Yes</button>
+        <button class="del-confirm-no"  onclick="hideDeleteConfirm('${n.id}')">No</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Build options for the Nikke selector, excluding already-added ones
+  const addedNames = new Set(state.nikkes.map(n => n.name));
+  const options = NIKKE_DATABASE
+    .filter(n => !addedNames.has(n.name))
+    .map(n => `<option value="${n.name}">${n.name} · ${n.element} · B${burstNum(n.burst)}</option>`)
+    .join('');
+
+  el.innerHTML = `
+    <div class="roster-grid">${cards}</div>
+    <button class="add-nikke-btn" onclick="showAddForm()">+ Add Nikke</button>
+    <div id="add-form" class="form-panel">
+      <div class="form-panel-title">Add Nikke</div>
+      <div class="form-row">
+        <label class="form-label">Search &amp; Select</label>
+        <input class="form-input" id="nn-search" placeholder="Type to filter..." oninput="filterNikkeList()"/>
+      </div>
+      <div class="form-row">
+        <select id="nn-select" class="form-input" size="8" style="height:auto;overflow-y:auto">
+          ${options}
+        </select>
+      </div>
+      <div class="btn-row"><button class="btn" onclick="hideAddForm()">Cancel</button><button class="btn btn-primary" onclick="addNikke()">Add</button></div>
+    </div>`;
+}
+
+function showAddForm() {
+  document.getElementById('add-form').classList.add('show');
+  document.getElementById('nn-search').focus();
+}
+function hideAddForm() { document.getElementById('add-form').classList.remove('show'); }
+
+function filterNikkeList() {
+  const q = document.getElementById('nn-search').value.toLowerCase();
+  const sel = document.getElementById('nn-select');
+  const addedNames = new Set(state.nikkes.map(n => n.name));
+  const filtered = NIKKE_DATABASE
+    .filter(n => !addedNames.has(n.name) && n.name.toLowerCase().includes(q));
+  sel.innerHTML = filtered
+    .map(n => `<option value="${n.name}">${n.name} · ${n.element} · B${burstNum(n.burst)}</option>`)
+    .join('');
+}
+
+function addNikke() {
+  const sel = document.getElementById('nn-select');
+  const name = sel.value;
+  if (!name) return;
+  const entry = NIKKE_DATABASE.find(n => n.name === name);
+  if (!entry) return;
+  const nikke = mkNikke(entry.name, entry.burst, entry.element);
+  state.nikkes.push(nikke);
+  save(); render();
+}
+
+
+// ============================================================
+//  RENDER: GEAR TRACKER
+// ============================================================
+
+function renderGear() {
+  const el = document.getElementById('gear');
+  const list = state.nikkes.map(n => {
+    const done = SLOTS.filter(s => dotStatus(n, s) === 'done').length;
+    return `<div class="nikke-item ${state.selGear === n.id ? 'active' : ''}" onclick="selGearNikke('${n.id}')">
+      ${n.name}<div class="nikke-item-sub">${done}/4 slots done</div>
+    </div>`;
+  }).join('') || '<div style="font-size:12px;color:#475569;padding:6px">No Nikkes added</div>';
+
+  el.innerHTML = `<div class="two-col">
+    <div class="nikke-list">${list}</div>
+    <div id="gear-main">${state.selGear ? '' : '<div class="empty-state">← Select a Nikke</div>'}</div>
+  </div>`;
+
+  if (state.selGear) {
+    const n = state.nikkes.find(x => x.id === state.selGear);
+    if (n) renderGearMain(n);
+  }
+}
+
+function selGearNikke(id) { state.selGear = id; renderGear(); }
+
+function renderGearMain(nikke) {
+  const area = document.getElementById('gear-main');
+  const totals = attrTotals(nikke);
+
+  // Attribute totals table
+  const trackedStats = [...new Set([
+    ...Object.keys(totals),
+    ...nikke.priorities.filter(p => p.line).map(p => p.line),
+  ])].filter(s => !ALWAYS_TRASH.has(s));
+
+  const attrRows = trackedStats.map(stat => {
+    const tot = totals[stat] || 0;
+    const min = minTotalVal(nikke, stat);
+    const met = min === null ? null : tot >= min;
+    const metTxt = min === null
+      ? `<span class="no-min">No minimum</span>`
+      : met
+        ? `<span class="met">✓ Met (min ${min.toFixed(2)}%)</span>`
+        : `<span class="unmet">✗ Need ${(min - tot).toFixed(2)}% more</span>`;
+    const prio   = nikke.priorities.find(p => p.line === stat);
+    const tgtTier = prio ? parseInt(prio.targetTier) || 11 : 11;
+    const tgtVal  = TIER_TABLE[stat] ? TIER_TABLE[stat][tgtTier - 1] : null;
+    return `<tr>
+      <td style="font-weight:600;color:#f1f5f9">${stat}</td>
+      <td>${tot > 0 ? tot.toFixed(2) + (IS_PCT.has(stat) ? '%' : '') : '—'}</td>
+      <td>T${tgtTier}${tgtVal ? ' (≥' + tgtVal + '%)' : ''}</td>
+      <td>${metTxt}</td>
+    </tr>`;
+  }).join('');
+
+  const attrTable = trackedStats.length ? `
+    <div class="attr-summary">
+      <div class="attr-summary-title">Attribute totals — all 4 gear pieces</div>
+      <table class="attr-table">
+        <thead><tr><th>Stat</th><th>Total</th><th>Target Tier</th><th>Prydwen Min</th></tr></thead>
+        <tbody>${attrRows}</tbody>
+      </table>
+    </div>` : '';
+
+  // Gear slot cards
+  const slots = SLOTS.map(slot => {
+    const gear = nikke.gear[slot];
+    const v    = getVerdict(nikke, slot);
+    const sc   = scorePiece(nikke, slot);
+
+    const badge = sc
+      ? `<span style="font-size:11px;padding:2px 8px;border-radius:5px;font-weight:600;background:${v.cls==='v-keep'?'#052e16':v.cls==='v-ok'?'#3f2a06':'#3f1010'};color:${v.cls==='v-keep'?'#4ade80':v.cls==='v-ok'?'#fcd34d':'#f87171'}">${sc.good} good · ${sc.trash} trash</span>`
+      : `<span style="font-size:11px;color:#334155">Not entered</span>`;
+
+    const lineBoxes = gear.lines.map((line, i) => {
+      const cls       = line.stat ? classifyLine(line.stat, nikke) : null;
+      const tier      = line.stat && line.val ? getTier(line.stat, line.val) : null;
+      const tb        = tier ? tierBadgeInfo(tier) : null;
+      const targetTier = line.stat ? getTargetTier(line.stat, nikke) : 11;
+      const atTarget  = line.stat && line.val ? isAtTarget(line.stat, line.val, nikke) : false;
+      const aboveMin  = line.stat && line.val ? isAboveMinVal(line.stat, line.val) : true;
+      const barCls    = !cls ? '' : cls === 'essential' ? 'bar-essential' : cls === 'ideal' ? 'bar-ideal' : cls === 'passable' ? 'bar-passable' : 'bar-trash';
+      const prioLabel = !cls || cls === 'unset' ? '' : cls === 'essential' ? '<span class="prio-tag prio-essential">Essential</span>' : cls === 'ideal' ? '<span class="prio-tag prio-ideal">Ideal</span>' : cls === 'passable' ? '<span class="prio-tag prio-passable">Passable</span>' : '<span class="prio-tag prio-trash">Trash</span>';
+      const opts      = ALL_LINES.map(l => `<option value="${l}" ${line.stat === l ? 'selected' : ''}>${l}</option>`).join('');
+      const unit      = line.stat && IS_PCT.has(line.stat) ? '%' : '';
+      return `<div class="line-box" style="${line.locked ? 'border-color:#166534;background:#052e16' : ''}">
+        <div class="line-header">
+          <span class="line-label">Line ${i + 1}</span>
+          <span class="line-chance ${LINE_CHANCE_CSS[i]}">${LINE_CHANCE_LABELS[i]}</span>
+        </div>
+        <select onchange="updateStat('${nikke.id}','${slot}',${i},this.value)">
+          <option value="">— none —</option>${opts}
+        </select>
+        ${prioLabel}
+        <div class="value-row">
+          <input class="value-input" type="text" inputmode="decimal"
+            placeholder="${line.stat ? 'value' : '-'}"
+            value="${line.val || ''}"
+            ${!line.stat ? 'disabled' : ''}
+            oninput="formatValLive(this)"
+            onblur="updateVal('${nikke.id}','${slot}',${i},this.value)"
+            onkeydown="if(event.key==='Enter'){this.blur()}"/>
+          ${unit ? `<span class="value-unit">${unit}</span>` : ''}
+          ${tb ? `<span class="tier-badge ${tb.cls}">${tb.label}</span>` : ''}
+        </div>
+        ${line.stat && line.val && !aboveMin ? `<div class="warn-text">⚠ Below min ${MIN_VAL[line.stat]}%</div>` : ''}
+        ${line.stat && line.val && aboveMin && !atTarget && isGoodLine(cls) ? `<div class="below-text">Below target T${targetTier}</div>` : ''}
+        <button class="lock-btn ${line.locked ? 'locked' : ''}"
+          onclick="toggleLock('${nikke.id}','${slot}',${i})"
+          ${!line.stat ? 'disabled' : ''}>
+          ${line.locked ? '🔒 Locked' : 'Lock'}
+        </button>
+        <div class="line-bar ${barCls}"></div>
+      </div>`;
+    }).join('');
+
+    let verdictHtml = '';
+    if (v) {
+      // Calculate this slot's priority rank across all nikkes
+      const slotRank = getSlotRank(nikke.id, slot);
+      const rankBadge = slotRank > 0 ? `<span class="rank-badge">#${slotRank}</span>` : '';
+
+      if (v.options) {
+        const rec = v.options.find(o => o.recommended) || v.options[0];
+        const recName = rec.title.includes('Reset') ? 'Reset' : 'Change Effects';
+        const summary = `${rankBadge}${v.label} — ${recName} ~${rec.rocks} rocks · ${rec.gain}`;
+        verdictHtml = `<details class="verdict ${v.cls}">
+          <summary class="verdict-title">${summary}</summary>
+          ${v.options.map(opt => `
+            <div class="verdict-option" style="${opt.recommended ? 'border-left:3px solid currentColor' : ''}">
+              <div class="verdict-option-title">${opt.title}${opt.recommended ? '<span class="recommended-badge">Recommended</span>' : ''}</div>
+              <div class="verdict-steps">${opt.steps.map((s, si) => `<div class="verdict-step"><span class="step-num">${si + 1}.</span><span>${s}</span></div>`).join('')}</div>
+              <span class="rock-est">~${opt.rocks} rocks · ${opt.gain}</span>
+            </div>`).join('')}
+        </details>`;
+      } else {
+        const gainText = v.gain ? ` · ${v.gain}` : '';
+        const summary = v.rocks > 0
+          ? `${rankBadge}${v.label} — ~${v.rocks} rocks${gainText}`
+          : `${rankBadge}${v.label}`;
+        verdictHtml = `<details class="verdict ${v.cls}">
+          <summary class="verdict-title">${summary}</summary>
+          <div class="verdict-steps">${(v.steps || []).map((s, i) => `<div class="verdict-step"><span class="step-num">${i + 1}.</span><span>${s}</span></div>`).join('')}</div>
+          ${v.rocks > 0 ? `<span class="rock-est">~${v.rocks} rocks${gainText}</span>` : ''}
+        </details>`;
+      }
+    }
+
+    return `<div class="slot-card">
+      <div class="slot-header"><span class="slot-tag">${slot}</span>${badge}</div>
+      <div class="lines-grid">${lineBoxes}</div>
+      ${verdictHtml}
+    </div>`;
+  }).join('');
+
+  area.innerHTML = `
+    <div class="nikke-hdr">
+      <div class="avatar">${initials(nikke.name)}</div>
+      <div>
+        <div style="font-size:14px;font-weight:600;color:#f1f5f9">${nikke.name}</div>
+        <div style="font-size:11px;color:#64748b">${nikke.element || ''} · B${burstNum(nikke.burst)}</div>
+      </div>
+    </div>
+    ${attrTable}
+    ${slots}`;
+}
+
+function updateStat(nid, slot, i, val) {
+  const n = state.nikkes.find(x => x.id === nid);
+  n.gear[slot].lines[i].stat = val;
+  if (!val) { n.gear[slot].lines[i].val = ''; n.gear[slot].lines[i].locked = false; }
+  save(); renderGear(); renderOverview();
+}
+function formatValLive(input) {
+  // Strip non-digits, then auto-insert decimal before last 2 digits as user types
+  let digits = input.value.replace(/[^0-9]/g, '');
+  if (digits.length <= 2) {
+    input.value = digits; // not enough digits yet to format
+  } else {
+    input.value = digits.slice(0, -2) + '.' + digits.slice(-2);
+  }
+}
+
+function updateVal(nid, slot, i, val) {
+  const n = state.nikkes.find(x => x.id === nid);
+  n.gear[slot].lines[i].val = val.trim();
+  save(); renderGearMain(n); renderOverview();
+}
+function toggleLock(nid, slot, i) {
+  const n = state.nikkes.find(x => x.id === nid);
+  const l = n.gear[slot].lines[i];
+  if (!l.stat) return;
+  l.locked = !l.locked;
+  save(); renderGearMain(n);
+}
+
+
+// ============================================================
+//  RENDER: LINE PRIORITIES
+// ============================================================
+
+function renderPriority() {
+  const el = document.getElementById('priority');
+  const list = state.nikkes.map(n => `
+    <div class="nikke-item ${state.selPrio === n.id ? 'active' : ''}" onclick="selPrioNikke('${n.id}')">
+      ${n.name}<div class="nikke-item-sub">${n.priorities.length ? n.priorities.length + ' line(s) set' : 'No priorities yet'}</div>
+    </div>`
+  ).join('') || '<div style="font-size:12px;color:#475569;padding:6px">No Nikkes added</div>';
+
+  el.innerHTML = `<div class="two-col">
+    <div class="nikke-list">${list}</div>
+    <div id="prio-main">${state.selPrio ? '' : '<div class="empty-state">← Select a Nikke</div>'}</div>
+  </div>`;
+
+  if (state.selPrio) {
+    const n = state.nikkes.find(x => x.id === state.selPrio);
+    if (n) renderPrioMain(n);
+  }
+}
+
+function selPrioNikke(id) { state.selPrio = id; renderPriority(); }
+
+function renderPrioMain(nikke) {
+  const area = document.getElementById('prio-main');
+  const rows = nikke.priorities.map((p, i) => {
+    const statOpts = ALL_LINES.filter(l => !ALWAYS_TRASH.has(l))
+      .map(l => `<option value="${l}" ${p.line === l ? 'selected' : ''}>${l}</option>`).join('');
+    const tierOpts = PRIORITY_TIERS
+      .map(t => `<option value="${t}" ${p.tier === t ? 'selected' : ''}>${t}</option>`).join('');
+    const count      = parseInt(p.count) || 1;
+    const targetTier = parseInt(p.targetTier) || 11;
+    const tTierOpts  = Array.from({length: 15}, (_, k) => k + 1)
+      .map(t => `<option value="${t}" ${targetTier === t ? 'selected' : ''}>T${t}</option>`).join('');
+    const tgtVal   = p.line && TIER_TABLE[p.line] ? TIER_TABLE[p.line][targetTier - 1] : null;
+    const prob     = probHitTargetTier(targetTier);
+    const expRolls = Math.round(1 / prob);
+    return `<div class="prio-card">
+      <div class="prio-col-labels">
+        <span class="prio-col-label">Stat</span>
+        <span class="prio-col-label">Priority</span>
+        <span class="prio-col-label">Count</span>
+        <span class="prio-col-label">Target Tier</span>
+        <span></span>
+      </div>
+      <div class="prio-row">
+        <select onchange="updatePrioLine('${nikke.id}',${i},this.value)"><option value="">— select —</option>${statOpts}</select>
+        <select onchange="updatePrioTier('${nikke.id}',${i},this.value)">${tierOpts}</select>
+        <input class="prio-count-input" type="number" min="1" max="4" value="${count}" onchange="updatePrioCount('${nikke.id}',${i},this.value)" title="How many of this line across all 4 gear pieces"/>
+        <select class="tier-target-select" onchange="updatePrioTargetTier('${nikke.id}',${i},this.value)">${tTierOpts}</select>
+        <button class="small-del-btn" onclick="delPrio('${nikke.id}',${i})" title="Remove">✕</button>
+      </div>
+      ${tgtVal ? `<div class="prio-hint">T${targetTier}+ for ${p.line || 'stat'}: ≥<strong>${tgtVal}%</strong> · ${(prob * 100).toFixed(0)}% chance per reset roll (~${expRolls} rolls expected)</div>` : ''}
+      ${p.line && (p.line in MIN_VAL) ? `<div class="prio-hint">Prydwen min per line: ${MIN_VAL[p.line]}% · Total min for ${count}×: ${(MIN_VAL[p.line] * count).toFixed(2)}%</div>` : ''}
+    </div>`;
+  }).join('');
+
+  area.innerHTML = `
+    <div class="nikke-hdr">
+      <div class="avatar">${initials(nikke.name)}</div>
+      <div>
+        <div style="font-size:14px;font-weight:600;color:#f1f5f9">${nikke.name}</div>
+        <div style="font-size:11px;color:#64748b">Priorities apply across all 4 gear slots</div>
+      </div>
+    </div>
+    <div class="info-note" style="margin-bottom:10px">
+      Set how many of each line you need (Count) and your minimum acceptable value tier (Target Tier, default T11).
+      Passable lines are always sacrificeable when Change Effects is needed.
+    </div>
+    ${rows}
+    <button class="add-line-btn" onclick="addPrio('${nikke.id}')">+ Add line</button>
+    <div class="info-note" style="margin-top:10px">
+      DEF is always trash. Recommended reroll order: Line 3 (30%) → Line 2 (50%) → Line 1 (100% — last).
+      No duplicate stats can appear on the same gear piece.
+    </div>`;
+}
+
+function updatePrioLine(nid, i, v) {
+  const n = state.nikkes.find(x => x.id === nid);
+  n.priorities[i].line = v; save(); renderPrioMain(n); renderGear(); renderOverview();
+}
+function updatePrioTier(nid, i, v) {
+  const n = state.nikkes.find(x => x.id === nid);
+  n.priorities[i].tier = v; save(); renderPrioMain(n); renderGear(); renderOverview();
+}
+function updatePrioCount(nid, i, v) {
+  const n = state.nikkes.find(x => x.id === nid);
+  n.priorities[i].count = Math.min(4, Math.max(1, parseInt(v) || 1)); save(); renderPrioMain(n); renderOverview();
+}
+function updatePrioTargetTier(nid, i, v) {
+  const n = state.nikkes.find(x => x.id === nid);
+  n.priorities[i].targetTier = parseInt(v) || 11; save(); renderPrioMain(n); renderGear();
+}
+function addPrio(nid) {
+  const n = state.nikkes.find(x => x.id === nid);
+  n.priorities.push({ line: '', tier: 'Ideal', count: 1, targetTier: 11 });
+  save(); renderPrioMain(n);
+}
+function delPrio(nid, i) {
+  const n = state.nikkes.find(x => x.id === nid);
+  n.priorities.splice(i, 1); save(); renderPrioMain(n); renderGear(); renderOverview();
+}
+
+
+// ============================================================
+//  RENDER: SOLO RAIDS
+// ============================================================
+
+function renderRaids() {
+  const el = document.getElementById('raids');
+  const raidList = state.raids.map(r => `
+    <div class="nikke-item ${state.selRaidEdit === r.id ? 'active' : ''}" onclick="selRaidEdit('${r.id}')">
+      ${r.name}
+      <div class="nikke-item-sub">${r.entries.length} Nikke${r.entries.length !== 1 ? 's' : ''}</div>
+    </div>`).join('') || '<div style="font-size:12px;color:#475569;padding:6px">No raids created</div>';
+
+  el.innerHTML = `<div class="two-col">
+    <div class="nikke-list">
+      ${raidList}
+      <button class="add-line-btn" onclick="showAddRaidForm()" style="margin-top:8px">+ New Raid</button>
+      <div id="add-raid-form" class="form-panel" style="max-width:170px">
+        <div class="form-row"><input class="form-input" id="raid-name-input" placeholder="Raid name"/></div>
+        <div class="btn-row"><button class="btn btn-primary" onclick="addRaid()" style="font-size:11px;padding:4px 10px">Add</button></div>
+      </div>
+    </div>
+    <div id="raid-main">${state.selRaidEdit ? '' : '<div class="empty-state">← Select or create a raid</div>'}</div>
+  </div>`;
+
+  if (state.selRaidEdit) {
+    const raid = state.raids.find(r => r.id === state.selRaidEdit);
+    if (raid) renderRaidMain(raid);
+  }
+}
+
+function showAddRaidForm() {
+  document.getElementById('add-raid-form').classList.add('show');
+  document.getElementById('raid-name-input').focus();
+}
+
+function addRaid() {
+  const name = document.getElementById('raid-name-input').value.trim();
+  if (!name) return;
+  const raid = { id: 'r' + Date.now(), name, entries: [] };
+  state.raids.push(raid);
+  state.selRaidEdit = raid.id;
+  save(); renderRaids();
+}
+
+function selRaidEdit(id) {
+  state.selRaidEdit = id;
+  renderRaids();
+}
+
+function deleteRaid(id) {
+  if (!confirm('Delete this raid?')) return;
+  state.raids = state.raids.filter(r => r.id !== id);
+  if (state.selRaidEdit === id) state.selRaidEdit = null;
+  if (state.selRaid === id) state.selRaid = null;
+  save(); renderRaids(); renderOverview();
+}
+
+function renderRaidMain(raid) {
+  const area = document.getElementById('raid-main');
+  // Build entries list
+  const entryRows = raid.entries.map((e, i) => {
+    const n = state.nikkes.find(x => x.id === e.nikkeId);
+    const name = n ? n.name : '(removed)';
+    const dmgFormatted = e.damage ? Number(e.damage).toLocaleString() : '—';
+    return `<div class="prio-row" style="grid-template-columns:1fr 120px 26px">
+      <span style="font-size:13px;font-weight:500">${name}</span>
+      <div style="display:flex;align-items:center;gap:3px">
+        <input class="prio-count-input" type="text" inputmode="decimal" value="${e.damage || ''}"
+          placeholder="0"
+          onblur="updateRaidDmg('${raid.id}',${i},this.value)"
+          onkeydown="if(event.key==='Enter'){this.blur()}"
+          style="text-align:right;width:100%"/>
+        <span style="font-size:11px;color:#475569">M</span>
+      </div>
+      <button class="small-del-btn" onclick="removeRaidEntry('${raid.id}',${i})" title="Remove">✕</button>
+    </div>`;
+  }).join('');
+
+  // Build nikke selector (exclude already added)
+  const addedIds = new Set(raid.entries.map(e => e.nikkeId));
+  const available = state.nikkes.filter(n => !addedIds.has(n.id));
+  const nikkeOpts = available.map(n => `<option value="${n.id}">${n.name}</option>`).join('');
+
+  area.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div style="font-size:14px;font-weight:600;color:#f1f5f9">${raid.name}</div>
+      <button class="del-btn" onclick="deleteRaid('${raid.id}')" title="Delete raid">✕ Delete</button>
+    </div>
+    <div class="info-note" style="margin-bottom:10px">Enter damage in millions from a test run (e.g. 48 = 48M). Used to weight the efficiency ranking.</div>
+    <div class="prio-col-labels" style="grid-template-columns:1fr 120px 26px">
+      <span class="prio-col-label">Nikke</span>
+      <span class="prio-col-label" style="text-align:right">Damage (M)</span>
+      <span></span>
+    </div>
+    ${entryRows}
+    ${available.length ? `
+      <div style="display:flex;gap:6px;margin-top:8px;align-items:center">
+        <select id="raid-add-nikke" class="form-input" style="flex:1;font-size:12px;padding:4px 6px">
+          <option value="">— add nikke —</option>${nikkeOpts}
+        </select>
+        <button class="btn btn-primary" onclick="addRaidEntry('${raid.id}')" style="font-size:11px;padding:4px 10px">Add</button>
+      </div>` : '<div style="font-size:11px;color:#475569;margin-top:8px">All roster Nikkes added</div>'}`;
+}
+
+function addRaidEntry(raidId) {
+  const sel = document.getElementById('raid-add-nikke');
+  if (!sel || !sel.value) return;
+  const raid = state.raids.find(r => r.id === raidId);
+  raid.entries.push({ nikkeId: sel.value, damage: 0 });
+  save(); renderRaidMain(raid);
+}
+
+function removeRaidEntry(raidId, idx) {
+  const raid = state.raids.find(r => r.id === raidId);
+  raid.entries.splice(idx, 1);
+  save(); renderRaidMain(raid);
+}
+
+function updateRaidDmg(raidId, idx, val) {
+  const raid = state.raids.find(r => r.id === raidId);
+  // Store as number in millions (e.g. 48 = 48M)
+  raid.entries[idx].damage = parseFloat(val.replace(/[^0-9.]/g, '')) || 0;
+  save(); renderRaidMain(raid);
+}
+
+
+// ============================================================
+//  TAB SWITCHING & INIT
+// ============================================================
+
+function switchTab(tab, event) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  if (event) event.target.closest('.tab').classList.add('active');
+  document.getElementById(tab).classList.add('active');
+  if      (tab === 'overview')  renderOverview();
+  else if (tab === 'roster')    renderRoster();
+  else if (tab === 'gear')      renderGear();
+  else if (tab === 'priority')  renderPriority();
+  else if (tab === 'raids')     renderRaids();
+}
+
+function goToGearSlot(nikkeId, slot) {
+  state.selGear = nikkeId;
+  // Switch to gear tab
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab')[2].classList.add('active'); // Gear Tracker tab
+  document.getElementById('gear').classList.add('active');
+  renderGear();
+  // Scroll to the slot card
+  setTimeout(() => {
+    const cards = document.querySelectorAll('.slot-card .slot-tag');
+    cards.forEach(tag => {
+      if (tag.textContent.trim().toUpperCase() === slot.toUpperCase()) {
+        tag.closest('.slot-card').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    });
+  }, 50);
+}
+
+function render() {
+  // Sync elemental toggle with state
+  const chk = document.getElementById('elemental-chk');
+  if (chk) chk.checked = state.elementalBoss;
+  renderOverview();
+  renderRoster();
+  renderGear();
+  renderPriority();
+  renderRaids();
+}
+
+load();
+render();
+</script>
+</body>
+</html>
