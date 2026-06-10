@@ -674,12 +674,15 @@ const NIKKE_WEAPON = {
 //   Crit Rate = 0.5 (depends on existing CD, ~50% CD average → 0.5)
 //   Crit Damage = 0.35 (depends on existing CR, ~30-35% CR average → 0.35)
 //   Hit Rate = 0 (base; weapon-specific overrides below)
+//   Max Ammo = 0.25 (base; high value for FIRST line, diminishes sharply after)
 //   DEF = 0 (always trash)
 // Weapon-specific adjustments:
-//   Max Ammo: SR/RL (low ammo, long reload) = 0.15, AR = 0.10, SMG/MG = 0.05, SG = 0.12
+//   Max Ammo: SR/RL = 0.30, AR/SG = 0.25, SMG/MG = 0.20 (first line value)
 //   Charge Speed: SR/RL = 0.6, others = 0 (no charge mechanic)
 //   Charge Damage: SR/RL = 0.5, others = 0
 //   Hit Rate: SG = 0.5 (tightens pellet spread), AR/SMG/MG = 0.2 (moderate), SR/RL = 0 (pinpoint accuracy)
+// Diminishing returns for Max Ammo:
+//   1st line = 100% of weight, 2nd = 15%, 3rd+ = 5%
 
 const STAT_DMG_WEIGHT_BASE = {
   'ATK': 1.0,
@@ -687,32 +690,63 @@ const STAT_DMG_WEIGHT_BASE = {
   'Critical Rate': 0.5,
   'Critical Damage': 0.35,
   'Hit Rate': 0,
-  'Max Ammo': 0.10,
+  'Max Ammo': 0.25,
   'Charge Speed': 0,
   'Charge Damage': 0,
   'DEF': 0,
 };
 
 const STAT_DMG_WEIGHT_WEAPON = {
-  'SR':  { 'Max Ammo': 0.15, 'Charge Speed': 0.6, 'Charge Damage': 0.5, 'Hit Rate': 0 },
-  'RL':  { 'Max Ammo': 0.15, 'Charge Speed': 0.6, 'Charge Damage': 0.5, 'Hit Rate': 0 },
-  'AR':  { 'Max Ammo': 0.10, 'Hit Rate': 0.2 },
-  'SMG': { 'Max Ammo': 0.05, 'Hit Rate': 0.2 },
-  'MG':  { 'Max Ammo': 0.05, 'Hit Rate': 0.2 },
-  'SG':  { 'Max Ammo': 0.12, 'Hit Rate': 0.5 },
+  'SR':  { 'Max Ammo': 0.30, 'Charge Speed': 0.6, 'Charge Damage': 0.5, 'Hit Rate': 0 },
+  'RL':  { 'Max Ammo': 0.30, 'Charge Speed': 0.6, 'Charge Damage': 0.5, 'Hit Rate': 0 },
+  'AR':  { 'Max Ammo': 0.25, 'Hit Rate': 0.2 },
+  'SMG': { 'Max Ammo': 0.20, 'Hit Rate': 0.2 },
+  'MG':  { 'Max Ammo': 0.20, 'Hit Rate': 0.2 },
+  'SG':  { 'Max Ammo': 0.25, 'Hit Rate': 0.5 },
 };
 
-function getStatDmgWeight(stat, nikkeName) {
+// Diminishing returns multiplier for Max Ammo based on how many lines the nikke already has
+// Index = number of existing Max Ammo lines (0 = first line, 1 = second, 2+ = third+)
+const AMMO_DIMINISH_DEFAULT = [1.0, 0.15, 0.05];
+
+function getAmmoDiminish() {
+  if (state.customWeights && state.customWeights.ammoDiminish) return state.customWeights.ammoDiminish;
+  return AMMO_DIMINISH_DEFAULT;
+}
+
+// Count how many Max Ammo lines a nikke currently has across all gear
+function countAmmoLines(nikke) {
+  if (!nikke || !nikke.gear) return 0;
+  let count = 0;
+  SLOTS.forEach(s => {
+    if (nikke.gear[s] && nikke.gear[s].lines) {
+      nikke.gear[s].lines.forEach(l => { if (l.stat === 'Max Ammo') count++; });
+    }
+  });
+  return count;
+}
+
+function getStatDmgWeight(stat, nikkeName, nikkeObj) {
   const weapon = NIKKE_WEAPON[nikkeName] || 'AR';
   // Check custom weights first (user-editable)
+  let baseWeight;
   if (state.customWeights) {
     const cw = state.customWeights;
-    if (cw.weapon && cw.weapon[weapon] && cw.weapon[weapon][stat] !== undefined) return cw.weapon[weapon][stat];
-    if (cw.base && cw.base[stat] !== undefined) return cw.base[stat];
+    if (cw.weapon && cw.weapon[weapon] && cw.weapon[weapon][stat] !== undefined) baseWeight = cw.weapon[weapon][stat];
+    else if (cw.base && cw.base[stat] !== undefined) baseWeight = cw.base[stat];
   }
-  const weaponOverrides = STAT_DMG_WEIGHT_WEAPON[weapon] || {};
-  if (weaponOverrides[stat] !== undefined) return weaponOverrides[stat];
-  return STAT_DMG_WEIGHT_BASE[stat] || 0;
+  if (baseWeight === undefined) {
+    const weaponOverrides = STAT_DMG_WEIGHT_WEAPON[weapon] || {};
+    baseWeight = weaponOverrides[stat] !== undefined ? weaponOverrides[stat] : (STAT_DMG_WEIGHT_BASE[stat] || 0);
+  }
+  // Apply diminishing returns for Max Ammo
+  if (stat === 'Max Ammo' && nikkeObj) {
+    const existing = countAmmoLines(nikkeObj);
+    const diminish = getAmmoDiminish();
+    const mult = existing < diminish.length ? diminish[existing] : diminish[diminish.length - 1];
+    return baseWeight * mult;
+  }
+  return baseWeight;
 }
 
 // Stats whose values are expressed as percentages
@@ -1687,7 +1721,7 @@ function renderOverview() {
       // Apply stat damage weight based on which stat the gain is for
       const statMatch = gainLabel.match(/^(?:net\s+)?(\w[\w\s]*?)\s+[+-]/);
       const gainStat = statMatch ? ALL_LINES.find(l => gainLabel.includes(l)) || '' : '';
-      const dmgWeight = gainStat ? getStatDmgWeight(gainStat, n.name) : 1.0;
+      const dmgWeight = gainStat ? getStatDmgWeight(gainStat, n.name, n) : 1.0;
       const weightedGainRaw = gainTotal * dmgWeight;
       // Weight by damage if raid selected
       const dmg = raidDmgMap[n.id] || 0;
@@ -2662,6 +2696,20 @@ function renderWeights() {
     return `<tr><td style="font-weight:600;color:#60a5fa">${w}</td>${cells}</tr>`;
   }).join('');
 
+  const diminish = getAmmoDiminish();
+  const diminishLabels = ['1st line', '2nd line', '3rd+ lines'];
+  const diminishRows = diminish.map((val, i) => {
+    const isCustom = state.customWeights && state.customWeights.ammoDiminish && state.customWeights.ammoDiminish[i] !== AMMO_DIMINISH_DEFAULT[i];
+    const custom = isCustom ? ' style="color:#fbbf24"' : '';
+    return `<tr>
+      <td${custom}>${diminishLabels[i] || `Line ${i+1}+`}</td>
+      <td><input type="number" step="0.01" min="0" max="1" class="value-input" style="width:70px"
+        value="${val}" onchange="updateAmmoDiminish(${i}, this.value)"></td>
+      <td style="font-size:10px;color:#475569">${AMMO_DIMINISH_DEFAULT[i]}</td>
+      <td style="font-size:10px;color:#475569">×${val} = effective weight is ${(val * 100).toFixed(0)}% of base</td>
+    </tr>`;
+  }).join('');
+
   el.innerHTML = `
     <div style="max-width:700px">
       <div class="section-label">Stat Damage Weights</div>
@@ -2684,6 +2732,16 @@ function renderWeights() {
       <table class="attr-table">
         <tr><th>Weapon</th><th>Max Ammo</th><th>Charge Speed</th><th>Charge Damage</th><th>Hit Rate</th></tr>
         ${weaponRows}
+      </table>
+
+      <div class="section-label" style="margin-top:1.5rem">Max Ammo Diminishing Returns</div>
+      <div class="info-note" style="margin-bottom:.7rem">
+        The first Max Ammo line is highly valuable (reduces reload frequency significantly).
+        Additional lines have sharply diminishing returns. The multiplier below is applied to the base Max Ammo weight.
+      </div>
+      <table class="attr-table">
+        <tr><th>Line #</th><th>Multiplier</th><th>Default</th><th>Effect</th></tr>
+        ${diminishRows}
       </table>
 
       <div style="margin-top:1.5rem; display:flex; gap:10px">
@@ -2721,6 +2779,19 @@ function updateWeaponWeight(weapon, stat, value) {
 
 function resetWeightsToDefault() {
   delete state.customWeights;
+  save();
+  renderWeights();
+}
+
+function updateAmmoDiminish(index, value) {
+  if (!state.customWeights) state.customWeights = {};
+  if (!state.customWeights.ammoDiminish) state.customWeights.ammoDiminish = [...AMMO_DIMINISH_DEFAULT];
+  const v = parseFloat(value);
+  if (isNaN(v)) {
+    state.customWeights.ammoDiminish[index] = AMMO_DIMINISH_DEFAULT[index];
+  } else {
+    state.customWeights.ammoDiminish[index] = Math.max(0, Math.min(1, v));
+  }
   save();
   renderWeights();
 }
