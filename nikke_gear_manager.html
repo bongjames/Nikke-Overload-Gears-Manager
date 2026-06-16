@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Nikke Solo Raid Gear Manager</title>
+<title>Nikke Overload Gear Manager</title>
 
 <!-- ============================================================
-  NIKKE SOLO RAID OVERLOAD GEAR MANAGER
+  NIKKE OVERLOAD GEAR MANAGER
   ============================================================
   A tool to track overload gear lines, score rolls, and
   estimate rock costs for rerolling decisions.
@@ -347,6 +347,48 @@ details[open] > .verdict-title::before { transform: rotate(90deg); }
 .elemental-toggle:has(input:checked) { border-color: #3b82f6; color: #60a5fa; }
 .btn-sm { font-size: 12px; padding: 4px 12px; border-radius: 6px; cursor: pointer; border: 1px solid #2d3f5e; background: none; color: #94a3b8; transition: background 0.1s; }
 .btn-sm:hover { background: #1a2235; color: #f1f5f9; }
+.btn-sm.active-sort { background: #1e3a5f; color: #60a5fa; border-color: #3b82f6; }
+
+/* ── Raid Teams Drag & Drop ── */
+.raid-teams-grid { display: grid; grid-template-columns: 1fr; gap: 8px; margin-bottom: 12px; }
+.raid-team-lane { background: #151c2b; border: 1px solid #1e2535; border-radius: 8px; padding: 8px; }
+.raid-team-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.raid-team-label { font-size: 11px; font-weight: 700; color: #60a5fa; }
+.raid-team-total { font-size: 10px; color: #64748b; }
+.raid-team-note {
+  width: 100%; margin-top: 6px; font-size: 13px; padding: 6px 8px;
+  background: #0f1117; border: 1px solid #2d3f5e; border-radius: 5px;
+  color: #e2e8f0; transition: border-color 0.1s;
+}
+.raid-team-note:hover { border-color: #3b82f6; }
+.raid-team-note:focus { border-color: #3b82f6; outline: none; }
+.raid-team-drop { min-height: 36px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; padding: 6px; border-radius: 6px; border: 1px dashed #2d3f5e; transition: all 0.15s; }
+.raid-team-drop.drag-active { border-color: #3b82f6; }
+.raid-team-drop.drag-over { background: rgba(59,130,246,0.08); border-color: #60a5fa; }
+.raid-drop-hint { font-size: 10px; color: #334155; padding: 4px 8px; grid-column: 1 / -1; text-align: center; }
+.raid-unassigned-section { margin-top: 24px; padding-top: 16px; border-top: 1px solid #1e2535; }
+.raid-unassigned-drop { min-height: 40px; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); }
+.raid-chip {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 8px 6px; width: 100%;
+  background: #1a2235; border: 1px solid #2d3f5e; border-radius: 8px;
+  cursor: grab; color: #e2e8f0; user-select: none;
+  transition: opacity 0.1s, box-shadow 0.1s; text-align: center;
+}
+.raid-chip:hover { border-color: #3b82f6; }
+.raid-chip.dragging { opacity: 0.4; }
+.raid-chip-name { font-weight: 600; font-size: 11px; line-height: 1.2; word-break: break-word; }
+.raid-chip-dmg-label { font-size: 10px; color: #64748b; font-weight: 500; }
+.raid-team-badge {
+  font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px;
+  background: #1e3a5f; color: #60a5fa; display: inline-block;
+}
+.raid-dmg-bar-bg {
+  width: 100%; height: 6px; background: #1e2535; border-radius: 3px; overflow: hidden;
+}
+.raid-dmg-bar {
+  height: 100%; border-radius: 3px; transition: width 0.2s;
+}
 #nn-select { background: #0f1117; color: #e2e8f0; border: 1px solid #2d3f5e; border-radius: 6px; font-size: 13px; }
 #nn-select option { padding: 4px 8px; }
 #nn-select option:checked { background: #1e3a5f; color: #60a5fa; }
@@ -356,7 +398,7 @@ details[open] > .verdict-title::before { transform: rotate(90deg); }
 <div class="app">
   <div class="topbar">
     <div>
-      <div class="title">Solo Raid Gear Manager</div>
+      <div class="title">Overload Gear Manager</div>
       <div class="subtitle">Overload gear tracker &amp; reroll advisor</div>
     </div>
     <div class="topbar-actions">
@@ -415,6 +457,7 @@ const NIKKE_DATABASE = [
   {name:'Arcana',burst:'II',element:'Electric'},
   {name:'Arcana: Fortune Mate',burst:'II',element:'Fire'},
   {name:'Aria',burst:'II',element:'Water'},
+  {name:'Ark Ranger Black',burst:'III',element:'Wind'},
   {name:'Asuka Shikinami Langley',burst:'III',element:'Fire'},
   {name:'Asuka Shikinami Langley: Wille',burst:'III',element:'Wind'},
   {name:'Avistar',burst:'I',element:'Electric'},
@@ -491,7 +534,7 @@ const NIKKE_DATABASE = [
   {name:'Liberalio',burst:'III',element:'Wind'},
   {name:'Lily',burst:'II',element:'Wind'},
   {name:'Liter',burst:'I',element:'Iron'},
-  {name:'Little Mermaid (Siren)',burst:'I',element:'Wind'},
+  {name:'Siren',burst:'I',element:'Wind'},
   {name:'Ludmilla',burst:'I',element:'Water'},
   {name:'Ludmilla: Winter Owner',burst:'III',element:'Water'},
   {name:'Maiden',burst:'III',element:'Electric'},
@@ -539,6 +582,7 @@ const NIKKE_DATABASE = [
   {name:'Poli',burst:'II',element:'Water'},
   {name:'Poli (Treasure)',burst:'II',element:'Water'},
   {name:'Power',burst:'III',element:'Fire'},
+  {name:'Prika',burst:'II',element:'Water'},
   {name:'Privaty',burst:'III',element:'Water'},
   {name:'Privaty (Treasure)',burst:'III',element:'Water'},
   {name:'Privaty: Unkind Maid',burst:'III',element:'Electric'},
@@ -550,7 +594,7 @@ const NIKKE_DATABASE = [
   {name:'Quiry',burst:'III',element:'Wind'},
   {name:'Ram',burst:'I',element:'Wind'},
   {name:'Rapi',burst:'III',element:'Fire'},
-  {name:'Rapi: Red Hood',burst:'III',element:'Fire'},
+  {name:'Rapi: Red Hood',burst:'I',element:'Fire'},
   {name:'Rapunzel',burst:'I',element:'Iron'},
   {name:'Rapunzel: Pure Grace',burst:'I',element:'Iron'},
   {name:'Raven',burst:'III',element:'Iron'},
@@ -621,7 +665,7 @@ const NIKKE_WEAPON = {
   '2B':'SR','A2':'RL','Ada Wong':'SMG','Ade':'SMG','Ade: Agent Bunny':'SMG','Admi':'SMG',
   'Alice':'SR','Alice: Wonderland Bunny':'RL','Anchor':'SMG','Anchor: Innocent Maid':'SMG',
   'Anis':'RL','Anis: Sparkling Summer':'RL','Anis: Star':'RL','Anne: Miracle Fairy':'AR',
-  'Arcana':'SMG','Arcana: Fortune Mate':'SMG','Aria':'SR','Asuka Shikinami Langley':'RL',
+  'Arcana':'SMG','Arcana: Fortune Mate':'SMG','Aria':'SR','Ark Ranger Black':'AR','Asuka Shikinami Langley':'RL',
   'Asuka Shikinami Langley: Wille':'RL','Avistar':'AR','Bay':'SG','Bay (Treasure)':'SG',
   'Belorta':'AR','Biscuit':'RL','Blanc':'AR','Bready':'SG','Brid':'SR','Brid: Silent Track':'SR',
   'Centi':'AR','Centi (Treasure)':'AR','Chime':'SMG','Chisato Nishikigi':'AR',
@@ -637,7 +681,7 @@ const NIKKE_WEAPON = {
   'Harran':'SR','Helm':'SR','Helm (Treasure)':'SR','Helm: Aquamarine':'SR','Himeno':'SMG',
   'Isabel':'AR','Jackal':'RL','Jill Valentine':'SMG','Julia':'MG','Julia (Treasure)':'MG',
   'K':'SMG','Kilo':'SG','Kurumi':'SMG','Label':'SMG','Laplace':'RL','Laplace (Treasure)':'RL',
-  'Leona':'SG','Liberalio':'SR','Lily':'AR','Liter':'AR','Little Mermaid (Siren)':'SR',
+  'Leona':'SG','Liberalio':'SR','Lily':'AR','Liter':'AR',
   'Ludmilla':'SG','Ludmilla: Winter Owner':'SG','Maiden':'SR','Maiden: Ice Rose':'SR',
   'Makima':'AR','Mana':'AR','Marciana':'AR','Mari Makinami Illustrious':'SR',
   'Mary':'SMG','Mary: Bay Goddess':'SMG','Mast':'SMG','Mast: Romantic Maid':'SMG',
@@ -648,7 +692,7 @@ const NIKKE_WEAPON = {
   'Nayuta':'SMG','Neon':'AR','Neon: Blue Ocean':'AR','Neon: Vision Eye':'AR',
   'Nero':'SG','Neve':'SR','Nihilister':'MG','Noah':'AR','Noir':'SR','Noise':'RL',
   'Novel':'RL','Pascal':'RL','Pepper':'SMG','Phantom':'AR','Poli':'SG','Poli (Treasure)':'SG',
-  'Power':'MG','Privaty':'AR','Privaty (Treasure)':'AR','Privaty: Unkind Maid':'AR',
+  'Power':'MG','Prika':'SR','Privaty':'AR','Privaty (Treasure)':'AR','Privaty: Unkind Maid':'AR',
   'Product 08':'SMG','Product 12':'AR','Product 23':'AR','Quency':'AR',
   'Quency: Escape Queen':'AR','Quiry':'SR','Ram':'AR','Rapi':'AR','Rapi: Red Hood':'SR',
   'Rapunzel':'RL','Rapunzel: Pure Grace':'RL','Raven':'SR','Red Hood':'SR',
@@ -656,7 +700,7 @@ const NIKKE_WEAPON = {
   'Rosanna':'SG','Rosanna: Chic Ocean':'SG','Rouge':'SR','Rumani':'AR','Rupee':'AR',
   'Rupee: Winter Shopper':'RL','Sakura':'SG','Sakura Suzuhara':'SMG',
   'Sakura: Bloom in Summer':'SG','Scarlet':'SR','Scarlet: Black Shadow':'SMG',
-  'Signal':'AR','Sin':'AR','Snow Crane':'SG','Snow White':'SR',
+  'Signal':'AR','Sin':'AR','Siren':'SMG','Snow Crane':'SG','Snow White':'SR',
   'Snow White: Heavy Arms':'SR','Snow White: Innocent Days':'SR',
   'Soda':'SG','Soda: Twinkling Bunny':'SG','Soldier EG':'AR','Soldier FA':'AR',
   'Soldier OW':'AR','Soline':'AR','Soline: Frost Ticket':'AR','Sora':'SMG',
@@ -880,7 +924,7 @@ const NIKKE_SLUG_OVERRIDES = {
   'iDoll Flower': 'idoll-flower',
   'iDoll Ocean': 'idoll-ocean',
   'iDoll Sun': 'idoll-sun',
-  'Little Mermaid (Siren)': 'siren',
+  'Siren': 'siren',
   'Rei Ayanami (Tentative Name)': 'rei-ayanami-tentative-name',
 };
 
@@ -1669,6 +1713,13 @@ function doDelete(id) {
   save(); render();
 }
 
+function gearDeleteNikke(id) {
+  const n = state.nikkes.find(x => x.id === id);
+  if (!n) return;
+  if (!confirm(`Remove ${n.name}? All gear data will be lost.`)) return;
+  doDelete(id);
+}
+
 
 // ============================================================
 //  RENDER: OVERVIEW
@@ -1997,7 +2048,8 @@ function renderGear() {
   const list = filtered.map(n => {
     const done = SLOTS.filter(s => dotStatus(n, s) === 'done').length;
     return `<div class="nikke-item ${state.selGear === n.id ? 'active' : ''}" onclick="selGearNikke('${n.id}')" style="display:flex;align-items:center;gap:8px">
-      ${nikkeIcon(n.name, 26)}<div>${n.name}<div class="nikke-item-sub">${done}/4 slots done</div></div>
+      ${nikkeIcon(n.name, 26)}<div style="flex:1">${n.name}<div class="nikke-item-sub">${done}/4 slots done</div></div>
+      <button class="small-del-btn" onclick="event.stopPropagation();gearDeleteNikke('${n.id}')" title="Remove">✕</button>
     </div>`;
   }).join('') || '<div style="font-size:12px;color:#475569;padding:6px">No Nikkes match filter</div>';
 
@@ -2573,7 +2625,8 @@ function delPrio(nid, i) {
 
 function renderRaids() {
   const el = document.getElementById('raids');
-  const raidList = state.raids.map(r => {
+  const sortedRaids = [...state.raids].reverse();
+  const raidList = sortedRaids.map(r => {
     const displayName = r.element ? `${elemIcon(r.element)} ${r.name} - ${r.element} Weak` : r.name;
     return `<div class="nikke-item ${state.selRaidEdit === r.id ? 'active' : ''}" onclick="selRaidEdit('${r.id}')">
       ${displayName}
@@ -2644,52 +2697,149 @@ function deleteRaid(id) {
 
 function renderRaidMain(raid) {
   const area = document.getElementById('raid-main');
-  // Build entries list
-  const entryRows = raid.entries.map((e, i) => {
-    const n = state.nikkes.find(x => x.id === e.nikkeId);
-    const name = n ? n.name : '(removed)';
-    const dmgFormatted = e.damage ? Number(e.damage).toLocaleString() : '—';
-    return `<div class="prio-row" style="grid-template-columns:1fr 120px 26px">
-      <span style="font-size:13px;font-weight:500;display:flex;align-items:center;gap:6px">${n ? nikkeIcon(name, 24) : ''}${name}</span>
-      <div style="display:flex;align-items:center;gap:3px">
-        <input class="prio-count-input" type="text" inputmode="decimal" value="${e.damage || ''}"
-          placeholder="0"
-          data-raid-dmg="${raid.id}-${i}"
-          onblur="raidDmgOnBlur('${raid.id}',${i},this.value)"
-          onkeydown="raidDmgKeydown(event,'${raid.id}',${i})"
-          style="text-align:right;width:100%"/>
-        <span style="font-size:11px;color:#475569">M</span>
-      </div>
-      <button class="small-del-btn" onclick="removeRaidEntry('${raid.id}',${i})" title="Remove">✕</button>
-    </div>`;
-  }).join('');
+  const raidDisplayName = raid.element ? `${elemIcon(raid.element)} ${raid.name} - ${raid.element} Weak` : raid.name;
+  const viewMode = state.raidViewMode || 'teams'; // 'teams' or 'damage'
+
+  // Sort unassigned entries by damage
+  const sortMode = state.raidSortMode || 'damage';
+
+  // Group entries by team
+  const teams = { 0:[], 1:[], 2:[], 3:[], 4:[], 5:[] };
+  raid.entries.forEach((e, i) => {
+    const t = e.team || 0;
+    teams[t] = teams[t] || [];
+    teams[t].push({ ...e, origIdx: i });
+  });
+
+  // Sort unassigned by damage or name
+  if (sortMode === 'damage') {
+    teams[0].sort((a, b) => (b.damage || 0) - (a.damage || 0));
+  }
+
+  const totalDmg = raid.entries.reduce((s, e) => s + (e.damage || 0), 0);
 
   // Build nikke selector (exclude already added)
   const addedIds = new Set(raid.entries.map(e => e.nikkeId));
   const available = state.nikkes.filter(n => !addedIds.has(n.id));
   const nikkeOpts = available.map(n => `<option value="${n.id}">${n.name}</option>`).join('');
 
-  const raidDisplayName = raid.element ? `${elemIcon(raid.element)} ${raid.name} - ${raid.element} Weak` : raid.name;
+  // View toggle
+  const viewToggle = `<div style="display:flex;gap:4px">
+    <button class="btn-sm${viewMode === 'damage' ? ' active-sort' : ''}" onclick="setRaidView('damage')" style="font-size:10px;padding:2px 8px">Damage</button>
+    <button class="btn-sm${viewMode === 'teams' ? ' active-sort' : ''}" onclick="setRaidView('teams')" style="font-size:10px;padding:2px 8px">Teams</button>
+  </div>`;
+
+  let bodyHtml = '';
+
+  if (viewMode === 'teams') {
+    // ── TEAMS VIEW: drag-and-drop ──
+    function renderChip(e) {
+      const n = state.nikkes.find(x => x.id === e.nikkeId);
+      const name = n ? n.name : '(removed)';
+      const dmg = e.damage ? `${Number(e.damage).toLocaleString()}M` : '';
+      const elem = n && n.element ? elemIcon(n.element) : '';
+      return `<div class="raid-chip" draggable="true" data-raid-entry="${raid.id}-${e.origIdx}">
+        ${n ? nikkeIcon(name, 36) : ''}<span class="raid-chip-name">${name}</span>
+        ${elem ? `<span style="margin-top:1px">${elem}</span>` : ''}
+        ${dmg ? `<span class="raid-chip-dmg-label">${dmg}</span>` : ''}
+      </div>`;
+    }
+
+    const teamLanes = [1,2,3,4,5].map(t => {
+      const members = teams[t] || [];
+      const total = members.reduce((s, e) => s + (e.damage || 0), 0);
+      const chips = members.map(renderChip).join('');
+      const note = (raid.teamNotes && raid.teamNotes[t]) || '';
+      return `<div class="raid-team-lane" data-team="${t}" data-raid-id="${raid.id}">
+        <div class="raid-team-header">
+          <span class="raid-team-label">Team ${t}</span>
+          <span class="raid-team-total">${members.length}/5 · ${total ? total.toLocaleString() + 'M' : '—'}</span>
+        </div>
+        <div class="raid-team-drop" data-team="${t}" data-raid-id="${raid.id}">${chips}${!members.length ? '<div class="raid-drop-hint">Drop Nikkes here</div>' : ''}</div>
+        <input class="raid-team-note" type="text" placeholder="Notes..." value="${note.replace(/"/g, '&quot;')}"
+          onblur="updateTeamNote('${raid.id}',${t},this.value)"
+          onkeydown="if(event.key==='Enter')this.blur()"/>
+      </div>`;
+    }).join('');
+
+    const unassigned = teams[0] || [];
+    const unassignedChips = unassigned.map(renderChip).join('');
+    const sortBtns = `<div style="display:flex;gap:4px;margin-left:auto">
+      <button class="btn-sm${sortMode === 'damage' ? ' active-sort' : ''}" onclick="setRaidSort2('damage')" style="font-size:9px;padding:1px 5px">Dmg ↓</button>
+      <button class="btn-sm${sortMode === 'default' ? ' active-sort' : ''}" onclick="setRaidSort2('default')" style="font-size:9px;padding:1px 5px">Order</button>
+    </div>`;
+
+    bodyHtml = `
+      <div class="info-note" style="margin-bottom:10px">Drag Nikkes into teams. Enter damage in millions (e.g. 48 = 48M).</div>
+      <div class="raid-teams-grid">${teamLanes}</div>
+      <div class="raid-unassigned-section">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+          <span style="font-size:11px;font-weight:600;color:#475569;text-transform:uppercase;letter-spacing:.05em">Unassigned (${unassigned.length})</span>
+          ${sortBtns}
+        </div>
+        <div class="raid-team-drop raid-unassigned-drop" data-team="0" data-raid-id="${raid.id}">${unassignedChips}${!unassigned.length ? '<div class="raid-drop-hint">All Nikkes assigned!</div>' : ''}</div>
+      </div>`;
+  } else {
+    // ── DAMAGE VIEW: flat ranked list ──
+    const sorted = raid.entries.map((e, i) => ({ ...e, origIdx: i }))
+      .sort((a, b) => (b.damage || 0) - (a.damage || 0));
+
+    const maxDmg = sorted.length ? (sorted[0].damage || 0) : 1;
+
+    const rows = sorted.map((e, rank) => {
+      const n = state.nikkes.find(x => x.id === e.nikkeId);
+      const name = n ? n.name : '(removed)';
+      const elem = n && n.element ? elemIcon(n.element) : '';
+      const teamBadge = e.team ? `<span class="raid-team-badge">T${e.team}</span>` : '<span class="raid-team-badge" style="opacity:.3">—</span>';
+      const pct = maxDmg > 0 ? ((e.damage || 0) / maxDmg * 100) : 0;
+      const barColor = pct >= 80 ? '#4ade80' : pct >= 50 ? '#60a5fa' : pct >= 25 ? '#fbbf24' : '#f87171';
+      return `<tr class="rank-row">
+        <td style="font-size:11px;color:#475569;width:24px">${rank + 1}</td>
+        <td style="font-size:13px;font-weight:500;display:flex;align-items:center;gap:8px">${n ? nikkeIcon(name, 30) : ''}${elem}${name}</td>
+        <td style="width:36px;text-align:center">${teamBadge}</td>
+        <td style="width:130px"><div style="display:flex;align-items:center;gap:3px">
+          <input class="prio-count-input" type="text" inputmode="decimal" value="${e.damage || ''}" placeholder="0"
+            data-raid-dmg="${raid.id}-${e.origIdx}"
+            onfocus="this.select()"
+            onblur="raidDmgOnBlur('${raid.id}',${e.origIdx},this.value)"
+            onkeydown="raidDmgKeydown(event,'${raid.id}',${e.origIdx})"
+            style="text-align:right;width:100%;font-size:14px;font-weight:700"/>
+          <span style="font-size:11px;color:#475569">M</span>
+        </div></td>
+        <td style="width:100px"><div class="raid-dmg-bar-bg"><div class="raid-dmg-bar" style="width:${pct.toFixed(1)}%;background:${barColor}"></div></div></td>
+        <td style="width:26px"><button class="small-del-btn" onclick="removeRaidEntry('${raid.id}',${e.origIdx})" title="Remove">✕</button></td>
+      </tr>`;
+    }).join('');
+
+    bodyHtml = `
+      <table class="attr-table" style="width:100%">
+        <tr><th>#</th><th>Nikke</th><th>Tm</th><th style="text-align:right">Damage</th><th></th><th></th></tr>
+        ${rows}
+      </table>`;
+  }
 
   area.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
       <div style="font-size:14px;font-weight:600;color:#f1f5f9">${raidDisplayName}</div>
-      <button class="del-btn" onclick="deleteRaid('${raid.id}')" title="Delete raid">✕ Delete</button>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:11px;color:#64748b">Total: <strong style="color:#f1f5f9">${totalDmg ? totalDmg.toLocaleString() + 'M' : '—'}</strong></span>
+        <button class="del-btn" onclick="deleteRaid('${raid.id}')" title="Delete raid">✕ Delete</button>
+      </div>
     </div>
-    <div class="info-note" style="margin-bottom:10px">Enter damage in millions from a test run (e.g. 48 = 48M). Used to weight the efficiency ranking.</div>
-    <div class="prio-col-labels" style="grid-template-columns:1fr 120px 26px">
-      <span class="prio-col-label">Nikke</span>
-      <span class="prio-col-label" style="text-align:right">Damage (M)</span>
-      <span></span>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      ${viewToggle}
     </div>
-    ${entryRows}
+    ${bodyHtml}
     ${available.length ? `
-      <div style="display:flex;gap:6px;margin-top:8px;align-items:center">
+      <div style="display:flex;gap:6px;margin-top:10px;align-items:center">
         <select id="raid-add-nikke" class="form-input" style="flex:1;font-size:12px;padding:4px 6px">
           <option value="">— add nikke —</option>${nikkeOpts}
         </select>
         <button class="btn btn-primary" onclick="addRaidEntry('${raid.id}')" style="font-size:11px;padding:4px 10px">Add</button>
-      </div>` : '<div style="font-size:11px;color:#475569;margin-top:8px">All roster Nikkes added</div>'}`;
+      </div>` : ''}`;
+
+  // Attach drag-and-drop event listeners (only in teams view)
+  if (viewMode === 'teams') initRaidDragDrop(raid.id);
 }
 
 function addRaidEntry(raidId) {
@@ -2706,40 +2856,89 @@ function removeRaidEntry(raidId, idx) {
   save(); renderRaidMain(raid);
 }
 
+function setRaidTeam(raidId, idx, team) {
+  const raid = state.raids.find(r => r.id === raidId);
+  raid.entries[idx].team = parseInt(team) || 0;
+  save(); renderRaidMain(raid);
+}
+
+function updateTeamNote(raidId, teamNum, value) {
+  const raid = state.raids.find(r => r.id === raidId);
+  if (!raid) return;
+  if (!raid.teamNotes) raid.teamNotes = {};
+  raid.teamNotes[teamNum] = value;
+  save();
+}
+
+function setRaidSort2(mode) {
+  state.raidSortMode = mode;
+  const raid = state.raids.find(r => r.id === state.selRaidEdit);
+  if (raid) renderRaidMain(raid);
+}
+
+function setRaidView(mode) {
+  state.raidViewMode = mode;
+  const raid = state.raids.find(r => r.id === state.selRaidEdit);
+  if (raid) renderRaidMain(raid);
+}
+
+function initRaidDragDrop(raidId) {
+  const chips = document.querySelectorAll('.raid-chip[data-raid-entry]');
+  const dropZones = document.querySelectorAll('.raid-team-drop[data-raid-id="' + raidId + '"]');
+
+  chips.forEach(chip => {
+    chip.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('text/plain', chip.dataset.raidEntry);
+      chip.classList.add('dragging');
+      // Highlight all drop zones
+      dropZones.forEach(z => z.classList.add('drag-active'));
+    });
+    chip.addEventListener('dragend', e => {
+      chip.classList.remove('dragging');
+      dropZones.forEach(z => { z.classList.remove('drag-active'); z.classList.remove('drag-over'); });
+    });
+  });
+
+  dropZones.forEach(zone => {
+    zone.addEventListener('dragover', e => {
+      e.preventDefault();
+      zone.classList.add('drag-over');
+    });
+    zone.addEventListener('dragleave', e => {
+      zone.classList.remove('drag-over');
+    });
+    zone.addEventListener('drop', e => {
+      e.preventDefault();
+      zone.classList.remove('drag-over');
+      const data = e.dataTransfer.getData('text/plain');
+      // data format: "raidId-entryIdx"
+      const parts = data.split('-');
+      const entryIdx = parseInt(parts[parts.length - 1]);
+      const targetTeam = parseInt(zone.dataset.team) || 0;
+      const raid = state.raids.find(r => r.id === raidId);
+      if (raid && !isNaN(entryIdx) && raid.entries[entryIdx]) {
+        raid.entries[entryIdx].team = targetTeam;
+        save();
+        renderRaidMain(raid);
+      }
+    });
+  });
+}
+
 let _raidDmgSkipBlur = false;
 
-function updateRaidDmg(raidId, idx, val, skipAutoFocus) {
+function updateRaidDmg(raidId, idx, val) {
   const raid = state.raids.find(r => r.id === raidId);
-  // Store as number in millions (e.g. 48 = 48M)
   raid.entries[idx].damage = parseFloat(val.replace(/[^0-9.]/g, '')) || 0;
   save();
-  // Don't re-render — the input already shows the value, avoid blink
-  if (!skipAutoFocus) {
-    const nextIdx = idx + 1;
-    if (nextIdx < raid.entries.length) {
-      const next = document.querySelector(`[data-raid-dmg="${raidId}-${nextIdx}"]`);
-      if (next) next.focus();
-    }
-  }
 }
 
 function raidDmgOnBlur(raidId, idx, val) {
-  if (_raidDmgSkipBlur) { _raidDmgSkipBlur = false; return; }
-  updateRaidDmg(raidId, idx, val, false);
+  updateRaidDmg(raidId, idx, val);
 }
 
 function raidDmgKeydown(event, raidId, idx) {
-  if (event.key === 'Tab' && event.shiftKey) {
-    event.preventDefault();
-    _raidDmgSkipBlur = true;
-    const val = event.target.value;
-    const prevIdx = idx - 1;
-    updateRaidDmg(raidId, idx, val, true);
-    setTimeout(() => {
-      const prev = document.querySelector(`[data-raid-dmg="${raidId}-${prevIdx}"]`);
-      if (prev) prev.focus();
-    }, 0);
-  } else if (event.key === 'Enter' || event.key === 'Tab') {
+  if (event.key === 'Enter') {
     event.preventDefault();
     event.target.blur();
   }
@@ -2970,12 +3169,13 @@ render();
 // Restore tab from query string
 const initTab = new URLSearchParams(window.location.search).get('tab');
 if (initTab && document.getElementById(initTab)) {
-  const tabs = ['overview','roster','gear','priority','raids','weights'];
-  const idx = tabs.indexOf(initTab);
-  if (idx >= 0) {
+  // Map section IDs to tab button indices (roster has no button)
+  const tabBtnOrder = ['overview','gear','priority','raids','weights'];
+  const btnIdx = tabBtnOrder.indexOf(initTab);
+  if (btnIdx >= 0) {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-    document.querySelectorAll('.tab')[idx].classList.add('active');
+    document.querySelectorAll('.tab')[btnIdx].classList.add('active');
     document.getElementById(initTab).classList.add('active');
   }
 }
