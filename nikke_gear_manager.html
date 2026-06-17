@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
@@ -400,6 +400,18 @@ details[open] > .verdict-title::before { transform: rotate(90deg); }
 #nn-select { background: #0f1117; color: #e2e8f0; border: 1px solid #2d3f5e; border-radius: 6px; font-size: 13px; }
 #nn-select option { padding: 4px 8px; }
 #nn-select option:checked { background: #1e3a5f; color: #60a5fa; }
+
+/* ── Auth & Sync ── */
+.btn-auth { border-color: #166534; color: #4ade80; }
+.btn-auth:hover { background: #052e16; }
+.btn-auth.signed-in { border-color: #2d3f5e; color: #94a3b8; }
+.btn-auth.signed-in:hover { background: #1a2235; }
+.sync-indicator { font-size: 11px; padding: 3px 8px; border-radius: 5px; font-weight: 500; }
+.sync-saving { color: #fbbf24; }
+.sync-saved  { color: #4ade80; }
+.sync-error  { color: #f87171; }
+.sync-offline { color: #64748b; }
+.user-avatar { width: 22px; height: 22px; border-radius: 50%; vertical-align: middle; margin-right: 4px; }
 </style>
 </head>
 <body>
@@ -410,9 +422,11 @@ details[open] > .verdict-title::before { transform: rotate(90deg); }
       <div class="subtitle">Overload gear tracker &amp; reroll advisor</div>
     </div>
     <div class="topbar-actions">
-      <button class="btn btn-sm" onclick="exportData()">â¬‡ Export</button>
-      <button class="btn btn-sm" onclick="document.getElementById('import-file').click()">â¬† Import</button>
+      <span id="sync-status" class="sync-indicator" style="display:none"></span>
+      <button class="btn btn-sm" onclick="exportData()">⬇ Export</button>
+      <button class="btn btn-sm" onclick="document.getElementById('import-file').click()">⬆ Import</button>
       <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)">
+      <button id="auth-btn" class="btn btn-sm btn-auth" onclick="handleAuth()">☁ Sign In</button>
     </div>
   </div>
 
@@ -431,6 +445,11 @@ details[open] > .verdict-title::before { transform: rotate(90deg); }
   <div id="raids"    class="section"></div>
   <div id="weights"  class="section"></div>
 </div>
+
+<!-- Firebase SDK (auth + firestore) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
 <!-- Knowledge Engine (shared across tools) -->
 <script src="knowledge/nikke-database.js"></script>
@@ -547,6 +566,174 @@ function getSlotRank(nikkeId, slot) {
 
 let state = { nikkes: [], selGear: null, selPrio: null, elementalBoss: true, raids: [], selRaid: null, selRaidEdit: null, rankSort: 'efficiency', rankSortAsc: false, gearElementFilter: '' };
 
+// ============================================================
+//  FIREBASE — Auth & Cloud Sync
+// ============================================================
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB6-sBTm8y6p6gWrwrTl32Xg-P-17dHMk4",
+  authDomain: "nikke-overload-gear-manager.firebaseapp.com",
+  projectId: "nikke-overload-gear-manager",
+  storageBucket: "nikke-overload-gear-manager.firebasestorage.app",
+  messagingSenderId: "600898359371",
+  appId: "1:600898359371:web:f14284dd7404baabf7bdce",
+  measurementId: "G-H4RGX62XH0"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// Enable offline persistence so Firestore works without connection
+db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
+
+let currentUser = null;
+let _saveTimeout = null;
+const DEBOUNCE_MS = 1500; // debounce cloud saves
+
+function setSyncStatus(status, msg) {
+  const el = document.getElementById('sync-status');
+  if (!el) return;
+  if (!currentUser) { el.style.display = 'none'; return; }
+  el.style.display = 'inline';
+  el.className = 'sync-indicator sync-' + status;
+  el.textContent = msg || '';
+}
+
+// Persist state that should be saved (strip transient UI fields)
+function getSerializableState() {
+  const s = JSON.parse(JSON.stringify(state));
+  // Remove transient fields that shouldn't sync
+  delete s.selGear;
+  delete s.selPrio;
+  delete s.selRaid;
+  delete s.selRaidEdit;
+  return s;
+}
+
+// Save to Firestore (debounced)
+function saveToCloud() {
+  if (!currentUser) return;
+  if (_saveTimeout) clearTimeout(_saveTimeout);
+  _saveTimeout = setTimeout(async () => {
+    try {
+      setSyncStatus('saving', '☁ saving…');
+      const data = getSerializableState();
+      data._updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+      await db.collection('users').doc(currentUser.uid).set(data);
+      setSyncStatus('saved', '☁ saved');
+      // Fade out after 2s
+      setTimeout(() => setSyncStatus('saved', ''), 2000);
+    } catch (e) {
+      console.error('Cloud save failed:', e);
+      setSyncStatus('error', '☁ error');
+    }
+  }, DEBOUNCE_MS);
+}
+
+// Load from Firestore
+async function loadFromCloud() {
+  if (!currentUser) return null;
+  try {
+    const doc = await db.collection('users').doc(currentUser.uid).get();
+    if (doc.exists) return doc.data();
+  } catch (e) {
+    console.error('Cloud load failed:', e);
+  }
+  return null;
+}
+
+// Upload current localStorage data to cloud (first sign-in merge)
+async function uploadLocalToCloud() {
+  if (!currentUser) return;
+  try {
+    const data = getSerializableState();
+    data._updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+    await db.collection('users').doc(currentUser.uid).set(data);
+    setSyncStatus('saved', '☁ synced');
+    setTimeout(() => setSyncStatus('saved', ''), 2000);
+  } catch (e) {
+    console.error('Upload failed:', e);
+  }
+}
+
+// Auth state change handler
+auth.onAuthStateChanged(async (user) => {
+  currentUser = user;
+  updateAuthUI();
+  if (user) {
+    // User just signed in — check if cloud has data
+    const cloudData = await loadFromCloud();
+    if (cloudData && cloudData.nikkes && cloudData.nikkes.length > 0) {
+      // Cloud has data — ask user which to keep if local also has data
+      if (state.nikkes.length > 0 && cloudData.nikkes.length !== state.nikkes.length) {
+        const useCloud = confirm(
+          `Found cloud data (${cloudData.nikkes.length} Nikkes) and local data (${state.nikkes.length} Nikkes).\n\n` +
+          `OK = Use cloud data\nCancel = Keep local data (will overwrite cloud)`
+        );
+        if (useCloud) {
+          Object.assign(state, cloudData);
+          delete state._updatedAt;
+          migrateState();
+          save(); // save to localStorage
+          render();
+        } else {
+          await uploadLocalToCloud();
+        }
+      } else if (state.nikkes.length === 0) {
+        // No local data, use cloud
+        Object.assign(state, cloudData);
+        delete state._updatedAt;
+        migrateState();
+        save();
+        render();
+      } else {
+        // Same count — quietly sync local to cloud
+        await uploadLocalToCloud();
+      }
+    } else if (state.nikkes.length > 0) {
+      // Cloud empty but local has data — upload
+      await uploadLocalToCloud();
+    }
+    setSyncStatus('saved', '☁ online');
+    setTimeout(() => setSyncStatus('saved', ''), 3000);
+  } else {
+    setSyncStatus('offline', '');
+  }
+});
+
+function updateAuthUI() {
+  const btn = document.getElementById('auth-btn');
+  if (!btn) return;
+  if (currentUser) {
+    const photo = currentUser.photoURL
+      ? `<img class="user-avatar" src="${currentUser.photoURL}" alt="">`
+      : '';
+    btn.innerHTML = `${photo}Sign Out`;
+    btn.classList.add('signed-in');
+  } else {
+    btn.innerHTML = '☁ Sign In';
+    btn.classList.remove('signed-in');
+  }
+}
+
+async function handleAuth() {
+  if (currentUser) {
+    if (confirm('Sign out? Your data will stay in this browser but stop syncing to the cloud.')) {
+      await auth.signOut();
+    }
+  } else {
+    try {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      await auth.signInWithPopup(provider);
+    } catch (e) {
+      if (e.code !== 'auth/popup-closed-by-user') {
+        alert('Sign-in failed: ' + e.message);
+      }
+    }
+  }
+}
+
 // Convert Roman numeral burst to number (Iâ†’1, IIâ†’2, IIIâ†’3, Allâ†’All)
 function burstNum(b) {
   if (b === 'III' || b === '3') return '3';
@@ -557,6 +744,7 @@ function burstNum(b) {
 
 function save() {
   try { localStorage.setItem('nikke_v8', JSON.stringify(state)); } catch(e) {}
+  saveToCloud(); // sync to Firestore if signed in
 }
 
 function load() {
@@ -564,6 +752,15 @@ function load() {
     const d = localStorage.getItem('nikke_v8');
     if (d) state = JSON.parse(d);
   } catch(e) {}
+  migrateState();
+  // Don't persist selected Nikke across reloads — default to first
+  state.selGear = state.nikkes.length ? state.nikkes[0].id : null;
+  // Save to localStorage only (auth listener handles cloud sync)
+  try { localStorage.setItem('nikke_v8', JSON.stringify(state)); } catch(e) {}
+}
+
+// Migrate/normalize state shape (works on both local and cloud data)
+function migrateState() {
   if (!state.nikkes) state.nikkes = [];
   if (state.elementalBoss === undefined) state.elementalBoss = true;
   if (state.gearElementFilter === undefined) state.gearElementFilter = '';
@@ -573,10 +770,8 @@ function load() {
   if (state.selRaid === undefined) state.selRaid = null;
   if (state.selRaidEdit === undefined) state.selRaidEdit = null;
   if (state.rankSortAsc === undefined) state.rankSortAsc = false;
-  // Migrate old data
   state.nikkes.forEach(n => {
-    n.id = n.id.replace('.', ''); // fix IDs with decimal points
-    // Migrate cls â†’ element (look up from database if possible)
+    n.id = n.id.replace('.', '');
     if (!n.element) {
       const dbEntry = NIKKE_DATABASE.find(e => e.name === n.name);
       n.element = dbEntry ? dbEntry.element : '';
@@ -591,15 +786,11 @@ function load() {
       n.gear[s].lines.forEach(l => { if (l.locked === undefined) l.locked = false; });
     });
   });
-  // Restore custom weapon mappings for user-added Nikkes
   if (state.customWeapons) {
     Object.entries(state.customWeapons).forEach(([name, weapon]) => {
       NIKKE_WEAPON[name] = weapon;
     });
   }
-  // Don't persist selected Nikke across reloads â€” default to first
-  state.selGear = state.nikkes.length ? state.nikkes[0].id : null;
-  save();
 }
 
 // â”€â”€ Export / Import â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
