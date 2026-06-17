@@ -454,8 +454,8 @@ details[open] > .verdict-title::before { transform: rotate(90deg); }
     <div class="topbar-actions">
       <span id="sync-status" class="sync-indicator" style="display:none"></span>
       <button class="btn btn-sm" onclick="showTutorial()" title="Show tutorial">? Guide</button>
-      <button class="btn btn-sm" onclick="exportData()">⬇ Export</button>
-      <button class="btn btn-sm" onclick="document.getElementById('import-file').click()">⬆ Import</button>
+      <button class="btn btn-sm" onclick="exportData()">⬇ Backup</button>
+      <button class="btn btn-sm" onclick="document.getElementById('import-file').click()">⬆ Restore</button>
       <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)">
       <button id="auth-btn" class="btn btn-sm btn-auth" onclick="handleAuth()">☁ Sign In</button>
     </div>
@@ -867,7 +867,7 @@ function migrateState() {
   }
 }
 
-// ── Export / Import ──────────────────────────────────────────
+// ── Backup / Restore ─────────────────────────────────────────
 function exportData() {
   const json = JSON.stringify(state, null, 2);
   const blob = new Blob([json], { type: 'application/json' });
@@ -892,7 +892,7 @@ function importData(event) {
         alert('Invalid backup file — missing nikkes array.');
         return;
       }
-      if (!confirm(`This will replace your current data (${state.nikkes.length} Nikke${state.nikkes.length !== 1 ? 's' : ''}) with the imported data (${imported.nikkes.length} Nikke${imported.nikkes.length !== 1 ? 's' : ''}). Continue?`)) return;
+      if (!confirm(`This will replace your current data (${state.nikkes.length} Nikke${state.nikkes.length !== 1 ? 's' : ''}) with the backup data (${imported.nikkes.length} Nikke${imported.nikkes.length !== 1 ? 's' : ''}). Continue?`)) return;
       state = imported;
       save();
       render();
@@ -901,7 +901,7 @@ function importData(event) {
     }
   };
   reader.readAsText(file);
-  event.target.value = ''; // reset so same file can be re-imported
+  event.target.value = ''; // reset so same file can be re-restored
 }
 
 function mkNikke(name, burst, element) {
@@ -1725,6 +1725,12 @@ function renderPriority() {
   let filtered = state.nikkes;
   if (state.gearElementFilter) filtered = filtered.filter(n => n.element === state.gearElementFilter);
   if (state.gearBurstFilter) filtered = filtered.filter(n => n.burst === state.gearBurstFilter);
+
+  // Auto-select top Nikke if none selected
+  if (!state.selPrio && filtered.length > 0) {
+    state.selPrio = filtered[0].id;
+  }
+
   const list = filtered.map(n => `
     <div class="nikke-item ${state.selPrio === n.id ? 'active' : ''}" onclick="selPrioNikke('${n.id}')" style="display:flex;align-items:center;gap:8px">
       ${nikkeIcon(n.name, 26)}<div>${n.name}<div class="nikke-item-sub">${n.priorities.length ? n.priorities.length + ' line(s) set' : 'No priorities yet'}</div></div>
