@@ -454,8 +454,7 @@ details[open] > .verdict-title::before { transform: rotate(90deg); }
     <div class="topbar-actions">
       <span id="sync-status" class="sync-indicator" style="display:none"></span>
       <button class="btn btn-sm" onclick="showTutorial()" title="Show tutorial">? Guide</button>
-      <button class="btn btn-sm" onclick="exportData()">⬇ Backup</button>
-      <button class="btn btn-sm" onclick="document.getElementById('import-file').click()">⬆ Restore</button>
+      <button class="btn btn-sm" onclick="showMyData()">� My Data</button>
       <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)">
       <button id="auth-btn" class="btn btn-sm btn-auth" onclick="handleAuth()">☁ Sign In</button>
     </div>
@@ -508,6 +507,21 @@ details[open] > .verdict-title::before { transform: rotate(90deg); }
       <button class="btn btn-primary" onclick="dismissTutorial()">Got it, let's go!</button>
     </div>
     <div class="tut-dismiss">You can re-open this guide from the top bar any time.</div>
+  </div>
+</div>
+
+<!-- My Data overlay -->
+<div class="tutorial-overlay" id="mydata-overlay">
+  <div class="tutorial-modal" style="max-width:420px">
+    <h2>My Data �</h2>
+    <div class="tut-subtitle">Your data is stored in this browser's local storage. It can be lost if you clear your browser data, switch browsers, or use a different device. Back up regularly to stay safe.</div>
+    <div style="display:flex;flex-direction:column;gap:12px;margin:1.2rem 0">
+      <button class="btn btn-primary" onclick="exportData();dismissMyData()" style="width:100%;padding:12px;font-size:14px">⬇ Backup My Data<br><span style="font-size:11px;opacity:0.7">Download a file with all your Nikkes &amp; gear</span></button>
+      <button class="btn btn-primary" onclick="document.getElementById('import-file').click();dismissMyData()" style="width:100%;padding:12px;font-size:14px;background:#1e40af">⬆ Restore My Data<br><span style="font-size:11px;opacity:0.7">Load a previously saved backup file</span></button>
+    </div>
+    <div class="tut-actions">
+      <button class="btn btn-sm" onclick="dismissMyData()">Close</button>
+    </div>
   </div>
 </div>
 
@@ -2456,6 +2470,17 @@ function dismissTutorial() {
 // Close tutorial when clicking overlay background
 document.getElementById('tutorial-overlay').addEventListener('click', function(e) {
   if (e.target === this) dismissTutorial();
+});
+
+// ── My Data Modal ───────────────────────────────────────────
+function showMyData() {
+  document.getElementById('mydata-overlay').classList.add('show');
+}
+function dismissMyData() {
+  document.getElementById('mydata-overlay').classList.remove('show');
+}
+document.getElementById('mydata-overlay').addEventListener('click', function(e) {
+  if (e.target === this) dismissMyData();
 });
 
 // If brand new (0 Nikkes), show tutorial and land on Gear Tracker
