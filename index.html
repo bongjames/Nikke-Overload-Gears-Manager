@@ -740,6 +740,9 @@ auth.onAuthStateChanged(async (user) => {
           Object.assign(state, cloudData);
           delete state._updatedAt;
           migrateState();
+          state.selGear = state.nikkes.length ? state.nikkes[0].id : null;
+          state.selRaid = state.raids.length ? state.raids[state.raids.length - 1].id : null;
+          state.selRaidEdit = state.raids.length ? state.raids[state.raids.length - 1].id : null;
           save(); // save to localStorage
           render();
         } else {
@@ -750,6 +753,9 @@ auth.onAuthStateChanged(async (user) => {
         Object.assign(state, cloudData);
         delete state._updatedAt;
         migrateState();
+        state.selGear = state.nikkes.length ? state.nikkes[0].id : null;
+        state.selRaid = state.raids.length ? state.raids[state.raids.length - 1].id : null;
+        state.selRaidEdit = state.raids.length ? state.raids[state.raids.length - 1].id : null;
         save();
         render();
       } else {
@@ -820,6 +826,9 @@ function load() {
   migrateState();
   // Don't persist selected Nikke across reloads — default to first
   state.selGear = state.nikkes.length ? state.nikkes[0].id : null;
+  // Default to latest raid (last in array = displayed first in sidebar)
+  state.selRaid = state.raids.length ? state.raids[state.raids.length - 1].id : null;
+  state.selRaidEdit = state.raids.length ? state.raids[state.raids.length - 1].id : null;
   // Save to localStorage only (auth listener handles cloud sync)
   try { localStorage.setItem('nikke_v8', JSON.stringify(state)); } catch(e) {}
 }
@@ -1793,7 +1802,7 @@ function renderPrioMain(nikke) {
       </div>
     </div>
     <div class="info-note" style="margin-bottom:10px">
-      Set how many of each line you need (Count) and your minimum acceptable value tier (Target Tier, default T11).
+      Set how many of each line you need (Count) and your minimum acceptable value tier (Target Tier, default T10).
       Passable lines are always sacrificeable when Change Effects is needed.
     </div>
     ${rows}
@@ -1822,7 +1831,7 @@ function updatePrioTargetTier(nid, i, v) {
 }
 function addPrio(nid) {
   const n = state.nikkes.find(x => x.id === nid);
-  n.priorities.push({ line: '', tier: 'Ideal', count: 1, targetTier: 11 });
+  n.priorities.push({ line: '', tier: 'Ideal', count: 1, targetTier: 10 });
   save(); renderPrioMain(n);
 }
 function delPrio(nid, i) {

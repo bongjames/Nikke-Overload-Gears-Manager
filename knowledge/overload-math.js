@@ -330,7 +330,36 @@ function isGoodLine(cls) {
 
 function getVerdict(nikke, slot) {
   const lines = nikke.gear[slot].lines;
-  if (lines.every(l => !l.stat)) return null;
+
+  // If all lines are empty but the Nikke has priorities, recommend starting
+  if (lines.every(l => !l.stat)) {
+    if (!nikke.priorities || !nikke.priorities.length) return null;
+    const goodPrios = nikke.priorities.filter(p => p.tier === 'Essential' || p.tier === 'Ideal');
+    if (!goodPrios.length) return null;
+    const goodStatNames = goodPrios.map(p => p.line).join('/');
+    const pool = remainingStatPool(new Set());
+    const gf   = goodStatFraction(pool, nikke);
+    const fl   = [{ appear: 1.0 }, { appear: 0.5 }, { appear: 0.3 }];
+    const pGood = pAtLeastOneGood(fl, gf);
+    const fishRocks = estChangeEffectsRocks(fl, gf, 0);
+    // Calculate expected gain per priority stat (same logic as changeEffectsGain but no loss)
+    const gainParts = goodPrios.map(p => {
+      const ev = expectedValAnyTier(p.line);
+      return `${p.line} +${ev.toFixed(2)}%`;
+    }).join(', ');
+    return {
+      label: `Ready to roll — ~${fishRocks} rocks for ${goodStatNames}`,
+      steps: [
+        `Use Overload to start rolling effects on this gear`,
+        `${(pGood * 100).toFixed(0)}% chance per roll to hit ${goodStatNames} (1 rock/roll)`,
+        `Expected gains: ${gainParts}`,
+        `Expected ~${fishRocks} rocks to land your first good line`,
+      ],
+      cls: 'v-ok',
+      rocks: fishRocks,
+      gain: gainParts,
+    };
+  }
 
   // Annotate each line with derived info
   const ann = lines.map((l, i) => {
