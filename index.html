@@ -1228,7 +1228,7 @@ function renderGear() {
 
     el.innerHTML = `<div class="two-col">
       <div class="gear-sidebar">${filterHtml}<div class="nikke-list">${list}${addHtml}</div></div>
-      <div id="gear-main">${state.selGear ? '' : '<div class="empty-state">â† Select a Nikke</div>'}</div>
+      <div id="gear-main">${state.selGear ? '' : '<div class="empty-state">← Select a Nikke</div>'}</div>
     </div>`;
   }
 
@@ -1674,7 +1674,7 @@ function renderPriority() {
 
   el.innerHTML = `<div class="two-col">
     <div class="nikke-list">${filterHtml}${list}</div>
-    <div id="prio-main">${state.selPrio ? '' : '<div class="empty-state">â† Select a Nikke</div>'}</div>
+    <div id="prio-main">${state.selPrio ? '' : '<div class="empty-state">← Select a Nikke</div>'}</div>
   </div>`;
 
   if (state.selPrio) {
@@ -1799,7 +1799,7 @@ function renderRaids() {
         <div class="btn-row"><button class="btn btn-primary" onclick="addRaid()" style="font-size:11px;padding:4px 10px">Add</button></div>
       </div>
     </div>
-    <div id="raid-main">${state.selRaidEdit ? '' : '<div class="empty-state">â† Select or create a raid</div>'}</div>
+    <div id="raid-main">${state.selRaidEdit ? '' : '<div class="empty-state">← Select or create a raid</div>'}</div>
   </div>`;
 
   if (state.selRaidEdit) {
