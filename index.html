@@ -2503,10 +2503,8 @@ document.getElementById('mydata-overlay').addEventListener('click', function(e) 
 // If brand new (0 Nikkes), show tutorial and land on Gear Tracker
 const _isNewUser = (function handleNewUser() {
   if (state.nikkes.length === 0) {
-    // Show tutorial on first ever visit
-    if (!localStorage.getItem('nikke_tutorial_seen')) {
-      showTutorial();
-    }
+    // No data yet — always show the guide on load
+    showTutorial();
     // Auto-switch to Gear Tracker tab
     const tabBtnOrder = ['overview','gear','raids','priority','weights'];
     const gearIdx = tabBtnOrder.indexOf('gear');
