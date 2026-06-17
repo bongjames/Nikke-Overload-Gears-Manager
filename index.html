@@ -649,6 +649,38 @@ function getSlotRank(nikkeId, slot) {
   return idx >= 0 ? idx + 1 : 0;
 }
 
+/*
+ * Total potential damage gain (%) for a nikke, summed across all
+ * incomplete gear slots. Uses the same gain-parsing logic as the
+ * efficiency ranking. Returns a percentage number (e.g. 7.5 = +7.5%).
+ */
+function getNikkeTotalGainPct(nikke) {
+  if (!nikke || !nikke.priorities || !nikke.priorities.length) return 0;
+  let total = 0;
+  SLOTS.forEach(s => {
+    const v = getVerdict(nikke, s);
+    if (!v || v.cls === 'v-keep') return;
+    let gainStr = '';
+    if (v.options) {
+      const rec = v.options.find(o => o.recommended) || v.options[0];
+      gainStr = rec ? rec.gain : '';
+    } else {
+      gainStr = v.gain || '';
+    }
+    if (!gainStr) return;
+    let gainTotal = 0;
+    const netMatch = gainStr.match(/net\s+(?:\S+\s+)?([+-]?\d+\.?\d*)%/);
+    if (netMatch) {
+      gainTotal = parseFloat(netMatch[1]);
+    } else {
+      const matches = gainStr.match(/\+(\d+\.?\d*)%/g);
+      if (matches) gainTotal = matches.reduce((sum, m) => sum + parseFloat(m.replace('+','').replace('%','')), 0);
+    }
+    if (gainTotal > 0) total += gainTotal;
+  });
+  return total;
+}
+
 
 // ============================================================
 //  STATE & PERSISTENCE
@@ -2072,6 +2104,14 @@ function renderRaidMain(raid) {
 
     const maxDmg = sorted.length ? (sorted[0].damage || 0) : 1;
 
+    // Pre-compute potential gain (in M) for each entry to determine relative scale
+    const potentials = sorted.map(e => {
+      const n = state.nikkes.find(x => x.id === e.nikkeId);
+      const gainPct = n ? getNikkeTotalGainPct(n) : 0;
+      return (e.damage && gainPct > 0) ? (gainPct / 100) * e.damage : 0;
+    });
+    const maxPotential = Math.max(...potentials, 0.001);
+
     const rows = sorted.map((e, rank) => {
       const n = state.nikkes.find(x => x.id === e.nikkeId);
       const name = n ? n.name : '(removed)';
@@ -2079,6 +2119,17 @@ function renderRaidMain(raid) {
       const teamBadge = e.team ? `<span class="raid-team-badge">T${e.team}</span>` : '<span class="raid-team-badge" style="opacity:.3">—</span>';
       const pct = maxDmg > 0 ? ((e.damage || 0) / maxDmg * 100) : 0;
       const barColor = pct >= 80 ? '#4ade80' : pct >= 50 ? '#60a5fa' : pct >= 25 ? '#fbbf24' : '#f87171';
+      // Potential damage gain if this nikke's overload gear is improved
+      const gainPct = n ? getNikkeTotalGainPct(n) : 0;
+      let gainCell;
+      if (!e.damage || gainPct <= 0) {
+        gainCell = '<span style="color:#475569">—</span>';
+      } else {
+        const gainM = (gainPct / 100) * e.damage;
+        const relPct = maxPotential > 0 ? (gainM / maxPotential * 100) : 0;
+        const gainColor = relPct >= 80 ? '#4ade80' : relPct >= 50 ? '#60a5fa' : relPct >= 25 ? '#fbbf24' : '#f87171';
+        gainCell = `<span style="color:${gainColor};font-weight:700" title="+${gainPct.toFixed(2)}% from improving overload gear">+${gainM.toFixed(1)}M</span> <span style="font-size:10px;color:${gainColor}">(+${gainPct.toFixed(1)}%)</span>`;
+      }
       return `<tr class="rank-row">
         <td style="font-size:11px;color:#475569;width:24px">${rank + 1}</td>
         <td style="font-size:13px;font-weight:500;display:flex;align-items:center;gap:8px">${n ? nikkeIcon(name, 30) : ''}${elem}${name}</td>
@@ -2093,13 +2144,14 @@ function renderRaidMain(raid) {
           <span style="font-size:11px;color:#475569">M</span>
         </div></td>
         <td style="width:100px"><div class="raid-dmg-bar-bg"><div class="raid-dmg-bar" style="width:${pct.toFixed(1)}%;background:${barColor}"></div></div></td>
+        <td style="width:120px;text-align:right;font-size:12px">${gainCell}</td>
         <td style="width:26px"><button class="small-del-btn" onclick="removeRaidEntry('${raid.id}',${e.origIdx})" title="Remove">✕</button></td>
       </tr>`;
     }).join('');
 
     bodyHtml = `
       <table class="attr-table" style="width:100%">
-        <tr><th>#</th><th>Nikke</th><th>Tm</th><th style="text-align:right">Damage</th><th></th><th></th></tr>
+        <tr><th>#</th><th>Nikke</th><th>Tm</th><th style="text-align:right">Damage</th><th></th><th style="text-align:right">Potential</th><th></th></tr>
         ${rows}
       </table>`;
   }
