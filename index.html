@@ -34,10 +34,10 @@
 
   VERDICT LOGIC (in order)
   ------------------------
-  - 2+ good lines at target             â†’ Keep
-  - Good line exists but below target   â†’ Option A (Reset) vs Option B (Sacrifice)
-  - 1 good line, need a second          â†’ Lock it, Change Effects on rest
-  - No good lines                       â†’ Change Effects freely
+  - 2+ good lines at target             → Keep
+  - Good line exists but below target   → Option A (Reset) vs Option B (Sacrifice)
+  - 1 good line, need a second          → Lock it, Change Effects on rest
+  - No good lines                       → Change Effects freely
 
   ROCK COST FORMULAS
   ------------------
@@ -734,7 +734,7 @@ async function handleAuth() {
   }
 }
 
-// Convert Roman numeral burst to number (Iâ†’1, IIâ†’2, IIIâ†’3, Allâ†’All)
+// Convert Roman numeral burst to number (I→1, II→2, III→3, All→All)
 function burstNum(b) {
   if (b === 'III' || b === '3') return '3';
   if (b === 'II' || b === '2') return '2';
@@ -1070,7 +1070,7 @@ function renderRoster() {
           ${nikkeIcon(n.name, 44)}
           <div style="min-width:0"><div class="nikke-name">${n.name}</div><div class="nikke-meta">${n.element || ''} · B${burstNum(n.burst)}</div></div>
         </div>
-        <button class="del-btn" onclick="requestDelete('${n.id}')" title="Remove">âœ•</button>
+        <button class="del-btn" onclick="requestDelete('${n.id}')" title="Remove">✕</button>
       </div>
       <div class="gear-dots">${dots}</div>
       <div class="del-confirm" id="del-confirm-${n.id}">
@@ -1179,7 +1179,7 @@ function renderGear() {
     const done = SLOTS.filter(s => dotStatus(n, s) === 'done').length;
     return `<div class="nikke-item ${state.selGear === n.id ? 'active' : ''}" onclick="selGearNikke('${n.id}')" style="display:flex;align-items:center;gap:8px">
       ${nikkeIcon(n.name, 26)}<div style="flex:1">${n.name}<div class="nikke-item-sub">${done}/4 slots done</div></div>
-      <button class="small-del-btn" onclick="event.stopPropagation();gearDeleteNikke('${n.id}')" title="Remove">âœ•</button>
+      <button class="small-del-btn" onclick="event.stopPropagation();gearDeleteNikke('${n.id}')" title="Remove">✕</button>
     </div>`;
   }).join('') || '<div style="font-size:12px;color:#475569;padding:6px">No Nikkes match filter</div>';
 
@@ -1338,15 +1338,15 @@ function renderGearMain(nikke) {
     const metTxt = min === null
       ? `<span class="no-min">No minimum</span>`
       : met
-        ? `<span class="met">âœ“ Met (min ${min.toFixed(2)}%)</span>`
-        : `<span class="unmet">âœ— Need ${(min - tot).toFixed(2)}% more</span>`;
+        ? `<span class="met">✓ Met (min ${min.toFixed(2)}%)</span>`
+        : `<span class="unmet">✗ Need ${(min - tot).toFixed(2)}% more</span>`;
     const prio   = nikke.priorities.find(p => p.line === stat);
     const tgtTier = prio ? parseInt(prio.targetTier) || 11 : 11;
     const tgtVal  = TIER_TABLE[stat] ? TIER_TABLE[stat][tgtTier - 1] : null;
     return `<tr>
       <td style="font-weight:600;color:#f1f5f9">${stat}</td>
       <td>${tot > 0 ? tot.toFixed(2) + (IS_PCT.has(stat) ? '%' : '') : '—'}</td>
-      <td>T${tgtTier}${tgtVal ? ' (â‰¥' + tgtVal + '%)' : ''}</td>
+      <td>T${tgtTier}${tgtVal ? ' (≥' + tgtVal + '%)' : ''}</td>
       <td>${metTxt}</td>
     </tr>`;
   }).join('');
@@ -1447,7 +1447,7 @@ function renderGearMain(nikke) {
     }
 
     return `<div class="slot-card">
-      <div class="slot-header"><span class="slot-tag">${slot}</span><div style="display:flex;align-items:center;gap:6px">${badge}<button class="btn-sm" onclick="showBulkPaste('${nikke.id}','${slot}')" title="Paste all lines at once">ðŸ“‹ Paste</button></div></div>
+      <div class="slot-header"><span class="slot-tag">${slot}</span><div style="display:flex;align-items:center;gap:6px">${badge}<button class="btn-sm" onclick="showBulkPaste('${nikke.id}','${slot}')" title="Paste all lines at once">📋 Paste</button></div></div>
       <div id="bulk-paste-${nikke.id}-${slot}" class="form-panel" style="max-width:100%;margin-top:0;margin-bottom:8px">
         <div style="font-size:11px;color:#64748b;margin-bottom:6px">Paste lines (one per row or comma-separated):<br><span style="color:#475569">e.g. ATK 10.40, EleD 20.75, CritDmg 9.58</span></div>
         <textarea style="width:100%;font-size:12px;background:#0f1117;color:#e2e8f0;border:1px solid #2d3f5e;border-radius:6px;padding:6px 8px;resize:vertical;min-height:60px;font-family:inherit" placeholder="ATK 10.40&#10;Elemental Damage 20.75&#10;Critical Rate 5.03"></textarea>
@@ -1712,9 +1712,9 @@ function renderPrioMain(nikke) {
         <select onchange="updatePrioTier('${nikke.id}',${i},this.value)">${tierOpts}</select>
         <input class="prio-count-input" type="number" min="1" max="4" value="${count}" onchange="updatePrioCount('${nikke.id}',${i},this.value)" title="How many of this line across all 4 gear pieces"/>
         <select class="tier-target-select" onchange="updatePrioTargetTier('${nikke.id}',${i},this.value)">${tTierOpts}</select>
-        <button class="small-del-btn" onclick="delPrio('${nikke.id}',${i})" title="Remove">âœ•</button>
+        <button class="small-del-btn" onclick="delPrio('${nikke.id}',${i})" title="Remove">✕</button>
       </div>
-      ${tgtVal ? `<div class="prio-hint">T${targetTier}+ for ${p.line || 'stat'}: â‰¥<strong>${tgtVal}%</strong> · ${(prob * 100).toFixed(0)}% chance per reset roll (~${expRolls} rolls expected)</div>` : ''}
+      ${tgtVal ? `<div class="prio-hint">T${targetTier}+ for ${p.line || 'stat'}: ≥<strong>${tgtVal}%</strong> · ${(prob * 100).toFixed(0)}% chance per reset roll (~${expRolls} rolls expected)</div>` : ''}
       ${p.line && (p.line in MIN_VAL) ? `<div class="prio-hint">Prydwen min per line: ${MIN_VAL[p.line]}% · Total min for ${count}Ã—: ${(MIN_VAL[p.line] * count).toFixed(2)}%</div>` : ''}
     </div>`;
   }).join('');
@@ -1734,7 +1734,7 @@ function renderPrioMain(nikke) {
     ${rows}
     <button class="add-line-btn" onclick="addPrio('${nikke.id}')">+ Add line</button>
     <div class="info-note" style="margin-top:10px">
-      DEF is always trash. Recommended reroll order: Line 3 (30%) â†’ Line 2 (50%) â†’ Line 1 (100% — last).
+      DEF is always trash. Recommended reroll order: Line 3 (30%) → Line 2 (50%) → Line 1 (100% — last).
       No duplicate stats can appear on the same gear piece.
     </div>`;
 }
@@ -1991,7 +1991,7 @@ function renderRaidMain(raid) {
           <span style="font-size:11px;color:#475569">M</span>
         </div></td>
         <td style="width:100px"><div class="raid-dmg-bar-bg"><div class="raid-dmg-bar" style="width:${pct.toFixed(1)}%;background:${barColor}"></div></div></td>
-        <td style="width:26px"><button class="small-del-btn" onclick="removeRaidEntry('${raid.id}',${e.origIdx})" title="Remove">âœ•</button></td>
+        <td style="width:26px"><button class="small-del-btn" onclick="removeRaidEntry('${raid.id}',${e.origIdx})" title="Remove">✕</button></td>
       </tr>`;
     }).join('');
 
@@ -2010,7 +2010,7 @@ function renderRaidMain(raid) {
       </div>
       <div style="display:flex;align-items:center;gap:8px">
         <span style="font-size:11px;color:#64748b">Total: <strong style="color:#f1f5f9">${totalDmg ? totalDmg.toLocaleString() + 'M' : '—'}</strong></span>
-        <button class="del-btn" onclick="deleteRaid('${raid.id}')" title="Delete raid">âœ• Delete</button>
+        <button class="del-btn" onclick="deleteRaid('${raid.id}')" title="Delete raid">✕ Delete</button>
       </div>
     </div>
     <div id="raid-edit-form" style="display:none;margin-bottom:10px;padding:10px;background:#151c2b;border:1px solid #1e2535;border-radius:8px">
