@@ -1,0 +1,13 @@
+<svg width="400" height="400" viewBox="185 125 290 450" role="img" xmlns="http://www.w3.org/2000/svg">
+  <title>NIKKE Custom Module Crystal</title>
+  <desc>A single blue crystal shard with point at bottom and point at top, tilted right</desc>
+
+  <polygon points="380,140 460,350 340,560 200,420 240,280" fill="#1a6fa8"/>
+  <polygon points="380,140 240,280 290,360" fill="#5bb8f5"/>
+  <polygon points="380,140 460,350 370,360 290,360" fill="#2e8fd4"/>
+  <polygon points="290,360 370,360 460,350 340,560" fill="#1558a0"/>
+  <polygon points="200,420 240,280 290,360 340,560" fill="#1a6fa8"/>
+  <polygon points="200,420 240,280 220,350" fill="#7dcfff" opacity="0.4"/>
+  <polygon points="380,140 370,162 390,158" fill="#aee4ff"/>
+  <polygon points="380,140 460,350 340,560 200,420 240,280" fill="none" stroke="#7dcfff" stroke-width="2.5" stroke-linejoin="round"/>
+</svg>

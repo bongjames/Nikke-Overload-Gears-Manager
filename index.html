@@ -4,7 +4,11 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Nikke Overload Gear Manager</title>
-<link rel="icon" href="data:,">
+<link rel="icon" href="assets/favicon.ico" sizes="any">
+<link rel="icon" href="assets/favicon_32.png" type="image/png" sizes="32x32">
+<link rel="icon" href="assets/favicon_192.png" type="image/png" sizes="192x192">
+<link rel="icon" href="assets/nikke_custom_module.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/favicon_192.png">
 
 <!-- ============================================================
   NIKKE OVERLOAD GEAR MANAGER
@@ -447,9 +451,12 @@ details[open] > .verdict-title::before { transform: rotate(90deg); }
 <body>
 <div class="app">
   <div class="topbar">
-    <div>
-      <div class="title">Overload Gear Manager</div>
-      <div class="subtitle">Overload gear tracker &amp; reroll advisor</div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <img src="assets/nikke_custom_module.svg" alt="Logo" style="width:36px;height:36px">
+      <div>
+        <div class="title">Overload Gear Manager</div>
+        <div class="subtitle">Overload gear tracker &amp; reroll advisor</div>
+      </div>
     </div>
     <div class="topbar-actions">
       <span id="sync-status" class="sync-indicator" style="display:none"></span>
