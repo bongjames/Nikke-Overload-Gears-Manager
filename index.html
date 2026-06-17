@@ -729,9 +729,14 @@ function getSerializableState() {
   return s;
 }
 
+// Flag set true ONLY when user explicitly clears all data via clearAllData()
+let _intentionalWipe = false;
+
 // Save to Firestore (debounced)
 function saveToCloud() {
   if (!currentUser) return;
+  // Guard: never push empty state to cloud unless user explicitly wiped
+  if (state.nikkes.length === 0 && !_intentionalWipe) return;
   if (_saveTimeout) clearTimeout(_saveTimeout);
   _saveTimeout = setTimeout(async () => {
     try {
@@ -745,6 +750,7 @@ function saveToCloud() {
       console.error('Cloud save failed:', e);
       setSyncStatus('error', '☁ error');
     }
+    _intentionalWipe = false; // reset after use
   }, DEBOUNCE_MS);
 }
 
@@ -763,6 +769,8 @@ async function loadFromCloud() {
 // Upload current localStorage data to cloud (first sign-in merge)
 async function uploadLocalToCloud() {
   if (!currentUser) return;
+  // Guard: never push empty state to cloud
+  if (state.nikkes.length === 0) return;
   try {
     const data = getSerializableState();
     data._updatedAt = firebase.firestore.FieldValue.serverTimestamp();
@@ -779,11 +787,11 @@ auth.onAuthStateChanged(async (user) => {
   currentUser = user;
   updateAuthUI();
   if (user) {
-    // User just signed in — check if cloud has data
+    // User signed in — always prefer cloud data
     const cloudData = await loadFromCloud();
     if (cloudData && cloudData.nikkes && cloudData.nikkes.length > 0) {
-      // Cloud has data — ask user which to keep if local also has data
       if (state.nikkes.length > 0 && cloudData.nikkes.length !== state.nikkes.length) {
+        // Both have data with different counts — ask user
         const useCloud = confirm(
           `Found cloud data (${cloudData.nikkes.length} Nikkes) and local data (${state.nikkes.length} Nikkes).\n\n` +
           `OK = Use cloud data\nCancel = Keep local data (will overwrite cloud)`
@@ -795,13 +803,13 @@ auth.onAuthStateChanged(async (user) => {
           state.selGear = state.nikkes.length ? state.nikkes[0].id : null;
           state.selRaid = state.raids.length ? state.raids[state.raids.length - 1].id : null;
           state.selRaidEdit = state.raids.length ? state.raids[state.raids.length - 1].id : null;
-          save(); // save to localStorage
+          save();
           render();
         } else {
           await uploadLocalToCloud();
         }
       } else if (state.nikkes.length === 0) {
-        // No local data, use cloud
+        // No local data — use cloud (this is the normal post-sign-out re-sign-in path)
         Object.assign(state, cloudData);
         delete state._updatedAt;
         migrateState();
@@ -820,6 +828,10 @@ auth.onAuthStateChanged(async (user) => {
     }
     setSyncStatus('saved', '☁ online');
   } else {
+    // User signed out — clear local data so stale state can't overwrite cloud later
+    state = { nikkes: [], selGear: null, selPrio: null, elementalBoss: true, raids: [], selRaid: null, selRaidEdit: null, rankSort: 'efficiency', rankSortAsc: false, gearElementFilter: '' };
+    try { localStorage.removeItem('nikke_v8'); } catch(e) {}
+    render();
     setSyncStatus('offline', '');
   }
 });
@@ -844,7 +856,7 @@ function updateAuthUI() {
 
 async function handleAuth() {
   if (currentUser) {
-    if (confirm('Sign out? Your data will stay in this browser but stop syncing to the cloud.')) {
+    if (confirm('Sign out? Local data will be cleared.\nYour data is safely stored in the cloud and will reload when you sign back in.')) {
       await auth.signOut();
     }
   } else {
@@ -2561,6 +2573,7 @@ function clearAllData() {
     : '';
   if (!confirm(`⚠ Delete ALL data?\n\nThis permanently removes ${count} Nikke(s) and all their gear, raid teams, and settings. This cannot be undone.${cloudNote}\n\nConsider backing up first.`)) return;
   if (!confirm('Are you absolutely sure? There is no way to recover this data.')) return;
+  _intentionalWipe = true; // allow empty state to push to cloud
   state = { nikkes: [], selGear: null, selPrio: null, elementalBoss: true, raids: [], selRaid: null, selRaidEdit: null, rankSort: 'efficiency', rankSortAsc: false, gearElementFilter: '' };
   save();
   render();

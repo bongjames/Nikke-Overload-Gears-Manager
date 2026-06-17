@@ -48,5 +48,40 @@ window.BUILD_INFO = {
 };
 "@
 
-Set-Content -Path $outFile -Value $content -Encoding UTF8 -NoNewline
-Write-Host "Stamped build-info.js -> v$version build $commit ($date)"
+# Write to a temp file first, then replace the target.
+# This works around OneDrive holding a lock on build-info.js during sync.
+$tempFile = "$outFile.tmp"
+$maxRetries = 10
+$retryDelay = 1  # seconds
+$written = $false
+
+Set-Content -Path $tempFile -Value $content -Encoding UTF8 -NoNewline
+
+for ($i = 1; $i -le $maxRetries; $i++) {
+  try {
+    # Remove existing file and rename temp into place
+    if (Test-Path $outFile) {
+      Remove-Item $outFile -Force
+    }
+    Rename-Item $tempFile $outFile -Force
+    $written = $true
+    break
+  } catch [System.IO.IOException] {
+    if ($i -lt $maxRetries) {
+      Write-Warning "File locked (attempt $i/$maxRetries), retrying in ${retryDelay}s..."
+      Start-Sleep -Seconds $retryDelay
+    } else {
+      Write-Warning "Could not replace build-info.js after $maxRetries attempts."
+    }
+  }
+}
+
+# Clean up temp file if it still exists
+if (Test-Path $tempFile) { Remove-Item $tempFile -Force -ErrorAction SilentlyContinue }
+
+if ($written) {
+  Write-Host "Stamped build-info.js -> v$version build $commit ($date)"
+} else {
+  Write-Error "FAILED to stamp build-info.js -- file is locked by another process (likely OneDrive)."
+  exit 1
+}
