@@ -4,7 +4,7 @@
   Regenerates knowledge/build-info.js using:
     - the semantic version from the VERSION file
     - the short git commit hash of HEAD
-    - the commit date of HEAD (YYYY-MM-DD)
+    - the commit date+time of HEAD (YYYY-MM-DD HH:mm:ss)
 
   Run manually:   powershell -ExecutionPolicy Bypass -File scripts/stamp-version.ps1
   Runs automatically on each commit via .git/hooks/pre-commit
@@ -26,10 +26,10 @@ if (Test-Path $versionFile) {
 
 # Git metadata (fall back gracefully if git is unavailable)
 $commit = 'unknown'
-$date   = (Get-Date -Format 'yyyy-MM-dd')
+$date   = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
 try {
   $commit = (git -C $repoRoot rev-parse --short HEAD).Trim()
-  $date   = (git -C $repoRoot log -1 --format=%cd --date=format:%Y-%m-%d).Trim()
+  $date   = (git -C $repoRoot log -1 --format=%cd --date=format:'%Y-%m-%d %H:%M:%S').Trim()
 } catch {
   Write-Warning "git metadata unavailable, using defaults"
 }
