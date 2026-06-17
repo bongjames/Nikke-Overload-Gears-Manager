@@ -1,0 +1,20 @@
+// Firestore Security Rules for Nikke Overload Gear Manager
+// Deploy via Firebase Console > Firestore > Rules
+//
+// Each user can only read/write their own document.
+// No one can access another user's data.
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users collection: each doc is keyed by the user's UID
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Deny everything else by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
