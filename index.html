@@ -1504,7 +1504,7 @@ function renderGearMain(nikke) {
         <button class="lock-btn ${line.locked ? 'locked' : ''}"
           onclick="toggleLock('${nikke.id}','${slot}',${i})"
           ${!line.stat ? 'disabled' : ''} tabindex="-1">
-          ${line.locked ? 'ðŸ”’ Locked' : 'Lock'}
+          ${line.locked ? '🔒 Locked' : 'Lock'}
         </button>
         <div class="line-bar ${barCls}"></div>
       </div>`;
