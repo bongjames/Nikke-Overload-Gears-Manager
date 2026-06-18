@@ -1335,6 +1335,17 @@ function gearDeleteNikke(id) {
 //  RENDER: OVERVIEW
 // ============================================================
 
+let _overviewSearch = '';
+
+function filterOverviewList() {
+  const input = document.getElementById('overview-search');
+  if (!input) return;
+  _overviewSearch = input.value.toLowerCase();
+  document.querySelectorAll('#overview .rank-row').forEach(el => {
+    el.style.display = el.dataset.name.includes(_overviewSearch) ? '' : 'none';
+  });
+}
+
 function renderOverview() {
   const el = document.getElementById('overview');
   const nk = state.nikkes;
@@ -1421,7 +1432,7 @@ function renderOverview() {
   const rankingHtml = rankings.length ? (() => {
     const top10 = rankings.slice(0, 10);
     const next10 = rankings.slice(10, 20);
-    const renderRow = (r, i) => `<tr class="rank-row" onclick="goToGearSlot('${r.nikkeId}','${r.slot}')">
+    const renderRow = (r, i) => `<tr class="rank-row" data-name="${r.nikke.toLowerCase()}" onclick="goToGearSlot('${r.nikkeId}','${r.slot}')">
         <td style="color:#475569">${i + 1}</td>
         <td style="font-weight:500"><div style="display:flex;align-items:center;gap:6px">${nikkeIcon(r.nikke, 22)}<span>${r.nikke}</span></div></td>
         <td>${r.slot}</td>
@@ -1459,13 +1470,15 @@ function renderOverview() {
       <div class="metric-card"><div class="metric-val" style="color:#f59e0b">${partial}</div><div class="metric-label">In progress</div></div>
       <div class="metric-card"><div class="metric-val">${pct}%</div><div class="metric-label">Completion</div></div>
     </div>
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-      <label class="elemental-toggle" title="Include Elemental Damage in gain calculations">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+      <input id="overview-search" class="form-input" placeholder="Search Nikke..." value="${_overviewSearch.replace(/"/g, '&quot;')}" oninput="filterOverviewList()" style="font-size:11px;padding:4px 8px;width:160px"/>
+      <label class="elemental-toggle" title="Include Elemental Damage in gain calculations" style="margin-left:auto">
         <input type="checkbox" id="elemental-chk" onchange="toggleElementalBoss(this.checked)" ${state.elementalBoss ? 'checked' : ''} style="accent-color:#3b82f6"/>
         <span>Elemental boss</span>
       </label>
     </div>
     ${rankingHtml}`;
+  if (_overviewSearch) filterOverviewList();
 }
 
 function toggleElementalBoss(checked) {
@@ -1607,6 +1620,16 @@ function addCustomNikke() {
 // ============================================================
 
 let _gearSidebarCache = '';
+let _gearSidebarSearch = '';
+
+function filterGearSidebarList() {
+  const input = document.getElementById('gear-sidebar-search');
+  if (!input) return;
+  _gearSidebarSearch = input.value.toLowerCase();
+  document.querySelectorAll('#gear .nikke-list .nikke-item').forEach(el => {
+    el.style.display = el.dataset.name.includes(_gearSidebarSearch) ? 'flex' : 'none';
+  });
+}
 
 function renderGear() {
   const el = document.getElementById('gear');
@@ -1615,7 +1638,7 @@ function renderGear() {
   if (state.gearBurstFilter) filtered = filtered.filter(n => n.burst === state.gearBurstFilter);
   const list = filtered.map(n => {
     const done = SLOTS.filter(s => dotStatus(n, s) === 'done').length;
-    return `<div class="nikke-item ${state.selGear === n.id ? 'active' : ''}" onclick="selGearNikke('${n.id}')" style="display:flex;align-items:center;gap:8px">
+    return `<div class="nikke-item ${state.selGear === n.id ? 'active' : ''}" data-name="${n.name.toLowerCase()}" onclick="selGearNikke('${n.id}')" style="display:flex;align-items:center;gap:8px">
       ${nikkeIcon(n.name, 26)}<div style="flex:1">${n.name}<div class="nikke-item-sub">${done}/4 slots done</div></div>
       <button class="small-del-btn" onclick="event.stopPropagation();gearDeleteNikke('${n.id}')" title="Remove">✕</button>
     </div>`;
@@ -1624,7 +1647,10 @@ function renderGear() {
   // Build element filter options from elements present in roster
   const elements = [...new Set(state.nikkes.map(n => n.element).filter(Boolean))].sort();
   const elemOpts = elements.map(e => `<option value="${e}" ${state.gearElementFilter === e ? 'selected' : ''}>${e}</option>`).join('');
-  const filterHtml = `<div style="display:flex;gap:4px;margin-bottom:6px">
+  const filterHtml = `<div style="margin-bottom:6px">
+    <input id="gear-sidebar-search" class="form-input" placeholder="Search Nikke..." value="${_gearSidebarSearch.replace(/"/g, '&quot;')}" oninput="filterGearSidebarList()" style="font-size:11px;padding:4px 8px;width:100%"/>
+  </div>
+  <div style="display:flex;gap:4px;margin-bottom:6px">
     <select style="font-size:11px;padding:3px 6px;background:#0f1117;color:#e2e8f0;border:1px solid #2d3f5e;border-radius:5px;flex:1" onchange="setGearElementFilter(this.value)">
       <option value="">All Elements</option>${elemOpts}
     </select>
@@ -1668,6 +1694,7 @@ function renderGear() {
       <div class="gear-sidebar">${filterHtml}${addHtml}<div class="nikke-list">${list}</div></div>
       <div id="gear-main">${state.selGear ? '' : '<div class="empty-state">← Select a Nikke</div>'}</div>
     </div>`;
+    if (_gearSidebarSearch) filterGearSidebarList();
   }
 
   if (state.selGear) {
@@ -2083,6 +2110,17 @@ function toggleLock(nid, slot, i) {
 //  RENDER: LINE PRIORITIES
 // ============================================================
 
+let _prioSidebarSearch = '';
+
+function filterPrioSidebarList() {
+  const input = document.getElementById('prio-sidebar-search');
+  if (!input) return;
+  _prioSidebarSearch = input.value.toLowerCase();
+  document.querySelectorAll('#priority .nikke-list .nikke-item').forEach(el => {
+    el.style.display = el.dataset.name.includes(_prioSidebarSearch) ? 'flex' : 'none';
+  });
+}
+
 function renderPriority() {
   const el = document.getElementById('priority');
   let filtered = state.nikkes;
@@ -2095,7 +2133,7 @@ function renderPriority() {
   }
 
   const list = filtered.map(n => `
-    <div class="nikke-item ${state.selPrio === n.id ? 'active' : ''}" onclick="selPrioNikke('${n.id}')" style="display:flex;align-items:center;gap:8px">
+    <div class="nikke-item ${state.selPrio === n.id ? 'active' : ''}" data-name="${n.name.toLowerCase()}" onclick="selPrioNikke('${n.id}')" style="display:flex;align-items:center;gap:8px">
       ${nikkeIcon(n.name, 26)}<div>${n.name}<div class="nikke-item-sub">${n.priorities.length ? n.priorities.length + ' line(s) set' : 'No priorities yet'}</div></div>
     </div>`
   ).join('') || '<div style="font-size:12px;color:#475569;padding:6px">No Nikkes match filter</div>';
@@ -2103,7 +2141,10 @@ function renderPriority() {
   // Build element filter options from elements present in roster
   const elements = [...new Set(state.nikkes.map(n => n.element).filter(Boolean))].sort();
   const elemOpts = elements.map(e => `<option value="${e}" ${state.gearElementFilter === e ? 'selected' : ''}>${e}</option>`).join('');
-  const filterHtml = `<div style="display:flex;gap:4px;margin-bottom:6px">
+  const filterHtml = `<div style="margin-bottom:6px">
+    <input id="prio-sidebar-search" class="form-input" placeholder="Search Nikke..." value="${_prioSidebarSearch.replace(/"/g, '&quot;')}" oninput="filterPrioSidebarList()" style="font-size:11px;padding:4px 8px;width:100%"/>
+  </div>
+  <div style="display:flex;gap:4px;margin-bottom:6px">
     <select style="font-size:11px;padding:3px 6px;background:#0f1117;color:#e2e8f0;border:1px solid #2d3f5e;border-radius:5px;flex:1" onchange="setGearElementFilter(this.value)">
       <option value="">All Elements</option>${elemOpts}
     </select>
@@ -2119,6 +2160,7 @@ function renderPriority() {
     <div class="nikke-list">${filterHtml}${list}</div>
     <div id="prio-main">${state.selPrio ? '' : '<div class="empty-state">← Select a Nikke</div>'}</div>
   </div>`;
+  if (_prioSidebarSearch) filterPrioSidebarList();
 
   if (state.selPrio) {
     const n = state.nikkes.find(x => x.id === state.selPrio);
