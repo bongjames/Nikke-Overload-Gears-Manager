@@ -407,11 +407,11 @@
             .line-box select {
                 width: 100%;
                 font-size: 12px;
-                border: none;
-                background: #0f1117;
+                border: 1px solid #2d3f5e;
+                background: #151c2b;
                 color: #e2e8f0;
                 cursor: pointer;
-                padding: 2px 0;
+                padding: 2px 4px;
                 border-radius: 4px;
             }
             .line-box select option {
@@ -420,6 +420,7 @@
             }
             .line-box select:focus {
                 outline: none;
+                border-color: #3b82f6;
             }
             .value-row {
                 display: flex;
@@ -444,8 +445,14 @@
                 cursor: not-allowed;
             }
             select.value-input {
-                background-color: #0f1117;
+                background-color: #151c2b;
+                border: 1px solid #2d3f5e;
+                border-radius: 4px;
+                padding: 2px 4px;
                 cursor: pointer;
+            }
+            select.value-input:focus {
+                border-color: #3b82f6;
             }
             .value-unit {
                 font-size: 11px;
@@ -490,6 +497,32 @@
             }
             .bar-trash {
                 background: #ef4444;
+            }
+            .line-prio-bar {
+                border-radius: 3px;
+                font-size: 9px;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.03em;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 2px 0;
+                background: #1e2535;
+                color: #475569;
+                min-height: 14px;
+            }
+            .line-prio-bar.prio-ideal {
+                background: #052e16;
+                color: #4ade80;
+            }
+            .line-prio-bar.prio-passable {
+                background: #3f2a06;
+                color: #fbbf24;
+            }
+            .line-prio-bar.prio-trash {
+                background: #3f1010;
+                color: #f87171;
             }
             .prio-tag {
                 font-size: 9px;
@@ -1752,8 +1785,7 @@
                             xmlns="http://www.w3.org/2000/svg"
                             width="14"
                             height="14"
-                            viewB
-                            ``````
+                            viewBox="0 0 24 24"
                             fill="currentColor"
                         >
                             <path
@@ -2419,6 +2451,8 @@
                             return;
                         state = imported;
                         migrateState();
+                        const _sortedAfterImport = sortNikkesBySidebar(state.nikkes);
+                        state.selGear = _sortedAfterImport.length ? _sortedAfterImport[0].id : null;
                         save();
                         render();
                     } catch (err) {
@@ -2581,8 +2615,8 @@
                     }
                 }
 
-                if (!state.selGear && state.nikkes.length) state.selGear = state.nikkes[0].id;
-                if (!state.selPrio && state.nikkes.length) state.selPrio = state.nikkes[0].id;
+                if (!state.selGear && state.nikkes.length) state.selGear = sortNikkesBySidebar(state.nikkes)[0].id;
+                if (!state.selPrio && state.nikkes.length) state.selPrio = sortNikkesBySidebar(state.nikkes)[0].id;
 
                 save();
                 render();
@@ -3332,7 +3366,7 @@
                 const attrTable = trackedStats.length
                     ? `
     <div class="attr-summary">
-      <div class="attr-summary-title">Attribute totals — all 4 gear pieces</div>
+      <div class="attr-summary-title">Attribute totals</div>
       <table class="attr-table">
         <thead><tr><th>Stat</th><th>Total</th><th>Target Tier</th><th>Prydwen Min</th></tr></thead>
         <tbody>${attrRows}</tbody>
@@ -3358,25 +3392,17 @@
                             const targetTier = line.stat ? getTargetTier(line.stat, nikke) : 11;
                             const atTarget = line.stat && line.val ? isAtTarget(line.stat, line.val, nikke) : false;
                             const aboveMin = line.stat && line.val ? isAboveMinVal(line.stat, line.val) : true;
-                            const barCls = !cls
-                                ? ""
-                                : cls === "essential"
-                                  ? "bar-essential"
-                                  : cls === "ideal"
-                                    ? "bar-ideal"
-                                    : cls === "passable"
-                                      ? "bar-passable"
-                                      : "bar-trash";
-                            const prioLabel =
+                            const prioText =
                                 !cls || cls === "unset"
                                     ? ""
-                                    : cls === "essential"
-                                      ? '<span class="prio-tag prio-essential">Essential</span>'
-                                      : cls === "ideal"
-                                        ? '<span class="prio-tag prio-ideal">Ideal</span>'
-                                        : cls === "passable"
-                                          ? '<span class="prio-tag prio-passable">Passable</span>'
-                                          : '<span class="prio-tag prio-trash">Trash</span>';
+                                    : cls === "ideal"
+                                      ? "Ideal"
+                                      : cls === "passable"
+                                        ? "Passable"
+                                        : cls === "trash"
+                                          ? "Trash"
+                                          : "";
+                            const prioCls = prioText ? `prio-${cls}` : "";
                             const opts = ALL_LINES.map(
                                 (l) => `<option value="${l}" ${line.stat === l ? "selected" : ""}>${l}</option>`,
                             ).join("");
@@ -3395,16 +3421,16 @@
           <span class="line-label">Line ${i + 1}</span>
           <span class="line-chance ${LINE_CHANCE_CSS[i]}">${LINE_CHANCE_LABELS[i]}</span>
         </div>
-        <select onchange="updateStat('${nikke.id}','${slot}',${i},this.value)" onkeydown="gearSelectKeydown(event,'${nikke.id}','${slot}',${i})" data-gear-select="${nikke.id}-${slot}-${i}" tabindex="${i * 2 + 1}">
-          <option value="">None</option>${opts}
-        </select>
-        ${prioLabel}
-        <div class="value-row">
+        <div style="display:flex;align-items:center;gap:4px">
+          <select onchange="updateStat('${nikke.id}','${slot}',${i},this.value)" onkeydown="gearSelectKeydown(event,'${nikke.id}','${slot}',${i})" data-gear-select="${nikke.id}-${slot}-${i}" tabindex="${i * 2 + 1}" style="flex:1;min-width:0">
+            <option value="">None</option>${opts}
+          </select>
           <select class="value-input"
             data-gear-val="${nikke.id}-${slot}-${i}"
             ${!line.stat ? "disabled" : ""}
             tabindex="${i * 2 + 2}"
-            onchange="updateVal('${nikke.id}','${slot}',${i},this.value)">
+            onchange="updateVal('${nikke.id}','${slot}',${i},this.value)"
+            style="width:64px;flex-shrink:0">
             <option value="">—</option>
             ${tierOpts}
           </select>
@@ -3413,12 +3439,12 @@
         </div>
         ${line.stat && line.val && !aboveMin ? `<div class="warn-text">⚠ Below min ${MIN_VAL[line.stat]}%</div>` : ""}
         ${line.stat && line.val && aboveMin && !atTarget && isGoodLine(cls) ? `<div class="below-text">Below target T${targetTier}</div>` : ""}
+        <div class="line-prio-bar ${prioCls}">${prioText}</div>
         <button class="lock-btn ${line.locked ? "locked" : ""}"
           onclick="toggleLock('${nikke.id}','${slot}',${i})"
           ${!line.stat ? "disabled" : ""} tabindex="-1">
           ${line.locked ? "🔒 Locked" : "Lock"}
         </button>
-        <div class="line-bar ${barCls}"></div>
       </div>`;
                         })
                         .join("");
@@ -3465,12 +3491,7 @@
                             ? `<span style="font-size:11px;color:#94a3b8;font-weight:400">T${gear.tier} Lv${gear.lv}</span>`
                             : "";
                     return `<div class="slot-card">
-      <div class="slot-header"><div style="display:flex;align-items:center;gap:6px"><span class="slot-tag">${slot}</span>${tierLvLabel}</div><div style="display:flex;align-items:center;gap:6px">${badge}<button class="btn-sm" onclick="showBulkPaste('${nikke.id}','${slot}')" title="Paste all lines at once">📋 Paste</button></div></div>
-      <div id="bulk-paste-${nikke.id}-${slot}" class="form-panel" style="max-width:100%;margin-top:0;margin-bottom:8px">
-        <div style="font-size:11px;color:#64748b;margin-bottom:6px">Paste lines (one per row or comma-separated):<br><span style="color:#475569">e.g. ATK 10.40, EleD 20.75, CritDmg 9.58</span></div>
-        <textarea style="width:100%;font-size:12px;background:#0f1117;color:#e2e8f0;border:1px solid #2d3f5e;border-radius:6px;padding:6px 8px;resize:vertical;min-height:60px;font-family:inherit" placeholder="ATK 10.40&#10;Elemental Damage 20.75&#10;Critical Rate 5.03"></textarea>
-        <div class="btn-row" style="margin-top:6px"><button class="btn" onclick="showBulkPaste('${nikke.id}','${slot}')">Cancel</button><button class="btn btn-primary" onclick="applyBulkPaste('${nikke.id}','${slot}')">Apply</button></div>
-      </div>
+      <div class="slot-header"><div style="display:flex;align-items:center;gap:6px"><span class="slot-tag">${slot}</span>${tierLvLabel}</div><div style="display:flex;align-items:center;gap:6px">${badge}</div></div>
       <div class="lines-grid">${lineBoxes}</div>
       ${verdictHtml}
     </div>`;
@@ -3701,134 +3722,6 @@
                 if (isNaN(num) || num < 0) num = 0;
                 n[which].lv = num;
                 save();
-            }
-
-            // ── Bulk Paste ──────────────────────────────────────────────
-            // Parses text like:
-            //   ATK 10.40
-            //   Elemental Damage 20.75
-            //   Crit Rate 5.03
-            // Or comma-separated: ATK 10.40, EleD 20.75, CritDmg 9.58
-            // Or from in-game screenshot copy (stat: value% format)
-
-            const STAT_ALIASES = {
-                atk: "ATK",
-                attack: "ATK",
-                ele: "Elemental Damage",
-                eled: "Elemental Damage",
-                elemental: "Elemental Damage",
-                "elemental damage": "Elemental Damage",
-                elem: "Elemental Damage",
-                element: "Elemental Damage",
-                ammo: "Max Ammo",
-                "max ammo": "Max Ammo",
-                maxammo: "Max Ammo",
-                cs: "Charge Speed",
-                "charge speed": "Charge Speed",
-                chargespeed: "Charge Speed",
-                chgspd: "Charge Speed",
-                cd: "Charge Damage",
-                "charge damage": "Charge Damage",
-                chargedamage: "Charge Damage",
-                chgdmg: "Charge Damage",
-                cr: "Critical Rate",
-                "crit rate": "Critical Rate",
-                critrate: "Critical Rate",
-                "critical rate": "Critical Rate",
-                crate: "Critical Rate",
-                critdmg: "Critical Damage",
-                "crit damage": "Critical Damage",
-                "crit dmg": "Critical Damage",
-                "critical damage": "Critical Damage",
-                cdmg: "Critical Damage",
-                hr: "Hit Rate",
-                "hit rate": "Hit Rate",
-                hitrate: "Hit Rate",
-                hit: "Hit Rate",
-                def: "DEF",
-                defense: "DEF",
-            };
-
-            function resolveStatName(raw) {
-                const lower = raw.trim().toLowerCase().replace(/[:%]/g, "");
-                // Exact match first
-                const exact = ALL_LINES.find((s) => s.toLowerCase() === lower);
-                if (exact) return exact;
-                // Alias match
-                if (STAT_ALIASES[lower]) return STAT_ALIASES[lower];
-                // Partial match
-                const partial = ALL_LINES.find((s) => s.toLowerCase().startsWith(lower));
-                if (partial) return partial;
-                return null;
-            }
-
-            function parseBulkPaste(text) {
-                // Split by newlines or commas
-                const parts = text
-                    .split(/[\n,]+/)
-                    .map((s) => s.trim())
-                    .filter(Boolean);
-                const results = [];
-                for (const part of parts) {
-                    // Match pattern: stat name followed by a number (with optional % sign)
-                    // Handle formats like "ATK 10.40", "ATK: 10.40%", "Elemental Damage 20.75"
-                    const match = part.match(/^(.+?)\s*[:=]?\s*(\d+\.?\d*)\s*%?\s*$/);
-                    if (match) {
-                        const stat = resolveStatName(match[1]);
-                        const val = match[2];
-                        if (stat) {
-                            results.push({ stat, val });
-                        }
-                    }
-                }
-                return results.slice(0, 3); // max 3 lines per gear piece
-            }
-
-            function showBulkPaste(nikkeId, slot) {
-                const el = document.getElementById(`bulk-paste-${nikkeId}-${slot}`);
-                if (el) {
-                    el.classList.toggle("show");
-                    if (el.classList.contains("show")) {
-                        const ta = el.querySelector("textarea");
-                        if (ta) {
-                            ta.value = "";
-                            ta.focus();
-                        }
-                    }
-                }
-            }
-
-            function applyBulkPaste(nikkeId, slot) {
-                const el = document.getElementById(`bulk-paste-${nikkeId}-${slot}`);
-                const ta = el.querySelector("textarea");
-                const parsed = parseBulkPaste(ta.value);
-                if (!parsed.length) return;
-
-                const n = state.nikkes.find((x) => x.id === nikkeId);
-                if (!n) return;
-
-                // Check for duplicate stats within the paste
-                const pasteStats = parsed.map((p) => p.stat);
-                const hasDupes = new Set(pasteStats).size !== pasteStats.length;
-                if (hasDupes) {
-                    ta.style.borderColor = "#ef4444";
-                    return;
-                }
-
-                // Apply parsed lines (overwrite non-locked lines from line 0 onward)
-                let lineIdx = 0;
-                for (const p of parsed) {
-                    // Find next non-locked line
-                    while (lineIdx < 3 && n.gear[slot].lines[lineIdx].locked) lineIdx++;
-                    if (lineIdx >= 3) break;
-                    n.gear[slot].lines[lineIdx].stat = p.stat;
-                    n.gear[slot].lines[lineIdx].val = p.val;
-                    lineIdx++;
-                }
-
-                save();
-                renderGearMain(n);
-                renderOverview();
             }
 
             function updateStat(nid, slot, i, val) {
