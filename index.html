@@ -233,6 +233,12 @@
                 border-radius: 10px;
                 padding: 0.9rem;
                 position: relative;
+                height: 90px;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                min-width: 0;
+                overflow: hidden;
             }
             .nikke-name {
                 font-size: 15px;
@@ -292,7 +298,7 @@
             }
 
             /* ── Delete confirm ── */
-            .del-btn {
+            .del-btn, .edit-btn {
                 font-size: 14px;
                 background: none;
                 border: none;
@@ -304,6 +310,9 @@
             }
             .del-btn:hover {
                 color: #ef4444;
+            }
+            .edit-btn:hover {
+                color: #38bdf8;
             }
             .del-confirm {
                 display: none;
@@ -342,6 +351,67 @@
                 border-radius: 4px;
                 padding: 2px 8px;
                 cursor: pointer;
+                color: #94a3b8;
+            }
+
+            /* ── Edit custom nikke inline form ── */
+            .edit-inline {
+                display: none;
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: #151c2b;
+                border-radius: 10px;
+                padding: 10px 12px;
+                z-index: 10;
+                flex-direction: column;
+                gap: 8px;
+            }
+            .edit-inline.show {
+                display: flex;
+            }
+            .edit-inline .edit-row {
+                display: grid;
+                grid-template-columns: 1fr 1fr 1fr 1fr;
+                gap: 6px;
+            }
+            .edit-inline .edit-row-name {
+                display: flex;
+                gap: 6px;
+            }
+            .edit-inline .edit-row-name input {
+                flex: 1;
+            }
+            .edit-inline input, .edit-inline select {
+                background: #0d1117;
+                border: 1px solid #2d3f5e;
+                border-radius: 4px;
+                color: #e2e8f0;
+                padding: 4px 6px;
+                font-size: 12px;
+            }
+            .edit-inline .edit-actions {
+                display: flex;
+                gap: 6px;
+                justify-content: flex-end;
+            }
+            .edit-inline .edit-actions button {
+                font-size: 12px;
+                padding: 3px 10px;
+                border-radius: 4px;
+                cursor: pointer;
+                border: none;
+            }
+            .edit-save-btn {
+                background: #38bdf8;
+                color: #0d1117;
+                font-weight: 600;
+            }
+            .edit-cancel-btn {
+                background: none;
+                border: 1px solid #2d3f5e !important;
                 color: #94a3b8;
             }
 
@@ -1319,6 +1389,7 @@
                 gap: 1px;
                 min-width: 0;
                 width: 100%;
+                overflow: hidden;
             }
             .raid-chip-name {
                 font-weight: 600;
@@ -1338,6 +1409,98 @@
             .raid-chip-dmg-label {
                 font-size: 13px;
                 font-weight: 700;
+            }
+
+            /* ── Raid Slot-based UI ── */
+            .raid-team-slots {
+                display: grid;
+                grid-template-columns: repeat(5, 1fr);
+                gap: 6px;
+            }
+            .raid-slot {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 4px;
+                padding: 8px 6px;
+                width: 100%;
+                position: relative;
+                background: #1a2235;
+                border: 1px solid #2d3f5e;
+                border-radius: 8px;
+                color: #e2e8f0;
+                text-align: center;
+                min-height: 80px;
+                justify-content: center;
+                min-width: 0;
+                overflow: hidden;
+            }
+            .raid-slot-empty {
+                border-style: dashed;
+                background: #0f172a;
+            }
+            .raid-slot-add-btn {
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                border: 2px dashed #475569;
+                background: none;
+                color: #64748b;
+                font-size: 22px;
+                font-weight: 700;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: all 0.15s;
+            }
+            .raid-slot-add-btn:hover {
+                border-color: #60a5fa;
+                color: #60a5fa;
+                background: rgba(59, 130, 246, 0.08);
+            }
+            .raid-slot-picker-overlay {
+                display: none;
+                position: fixed;
+                top: 0; left: 0; right: 0; bottom: 0;
+                background: rgba(0,0,0,0.6);
+                z-index: 1000;
+                align-items: center;
+                justify-content: center;
+            }
+            .raid-slot-picker-overlay.show {
+                display: flex;
+            }
+            .raid-slot-picker-modal {
+                background: #151c2b;
+                border: 1px solid #2d3f5e;
+                border-radius: 12px;
+                padding: 16px;
+                width: 340px;
+                max-height: 70vh;
+                display: flex;
+                flex-direction: column;
+            }
+            .raid-slot-picker-list {
+                overflow-y: auto;
+                max-height: 50vh;
+                display: flex;
+                flex-direction: column;
+                gap: 2px;
+            }
+            .raid-slot-picker-item {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 6px 8px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 14px;
+                color: #e2e8f0;
+                transition: background 0.1s;
+            }
+            .raid-slot-picker-item:hover {
+                background: #1e3a5f;
             }
             .raid-team-badge {
                 font-size: 12px;
@@ -1582,6 +1745,9 @@
                 /* Raid team chips: wrap on mobile */
                 .raid-team-drop {
                     grid-template-columns: repeat(5, 1fr);
+                }
+                .raid-team-slots {
+                    grid-template-columns: repeat(3, 1fr);
                 }
                 .raid-unassigned-drop {
                     grid-template-columns: repeat(3, 1fr);
@@ -1982,6 +2148,27 @@
                             >Load a previously saved backup file</span
                         >
                     </button>
+                    <div id="mydata-cloud-section" style="display:none; border-top: 1px solid #1e2535; padding-top: 12px; flex-direction: column; gap: 12px">
+                        <div style="font-size: 13px; color: #64748b; text-align: center">☁ Cloud Sync (signed in)</div>
+                        <button
+                            class="btn btn-primary"
+                            onclick="pullCloudData()"
+                            style="width: 100%; padding: 12px; font-size: 16px; background: #0d9488"
+                        >
+                            ☁⬇ Pull Cloud Data<br /><span style="font-size: 13px; opacity: 0.7"
+                                >Replace local data with your cloud save</span
+                            >
+                        </button>
+                        <button
+                            class="btn btn-primary"
+                            onclick="pushToCloud()"
+                            style="width: 100%; padding: 12px; font-size: 16px; background: #7c3aed"
+                        >
+                            ☁⬆ Push to Cloud<br /><span style="font-size: 13px; opacity: 0.7"
+                                >Overwrite cloud save with current local data</span
+                            >
+                        </button>
+                    </div>
                     <button
                         class="btn"
                         onclick="clearAllData()"
@@ -2401,11 +2588,9 @@
                         : "☁ ";
                     btn.innerHTML = `${photo}Sign Out`;
                     btn.classList.add("signed-in");
-                    if (mydataBtn) mydataBtn.style.display = "none";
                 } else {
                     btn.innerHTML = "☁ Sign In";
                     btn.classList.remove("signed-in");
-                    if (mydataBtn) mydataBtn.style.display = "";
                 }
             }
 
@@ -2872,6 +3057,47 @@
                 if (!n) return;
                 if (!confirm(`Remove ${n.name}? All gear data will be lost.`)) return;
                 doDelete(id);
+            }
+
+            // ── Edit custom Nikke ────────────────────────────────────────
+            function showEditNikke(id) {
+                const el = document.getElementById("edit-inline-" + id);
+                if (el) el.classList.add("show");
+            }
+
+            function hideEditNikke(id) {
+                const el = document.getElementById("edit-inline-" + id);
+                if (el) el.classList.remove("show");
+            }
+
+            function saveEditNikke(id) {
+                const n = state.nikkes.find((x) => x.id === id);
+                if (!n) return;
+                const newName = document.getElementById("edit-name-" + id).value.trim();
+                if (!newName) return;
+                // Prevent duplicate names (allow keeping same name)
+                if (newName !== n.name && state.nikkes.some((x) => x.name === newName)) {
+                    alert("A Nikke with that name already exists.");
+                    return;
+                }
+                const burstVal = document.getElementById("edit-burst-" + id).value;
+                const element = document.getElementById("edit-element-" + id).value;
+                const weapon = document.getElementById("edit-weapon-" + id).value;
+                // Update custom weapon mapping
+                if (state.customWeapons) {
+                    delete state.customWeapons[n.name];
+                }
+                if (!state.customWeapons) state.customWeapons = {};
+                state.customWeapons[newName] = weapon;
+                // Apply changes
+                n.name = newName;
+                n.burst1 = burstVal === "I";
+                n.burst2 = burstVal === "II";
+                n.burst3 = burstVal === "III";
+                n.element = element;
+                n.weapon = weapon;
+                save();
+                render();
             }
 
             // ============================================================
@@ -3411,13 +3637,41 @@
                         const dots = SLOTS.map((s) => `<div class="dot ${dotStatus(n, s)}" title="${s}"></div>`).join(
                             "",
                         );
+                        const editBtn = n.custom ? `<button class="edit-btn" onclick="showEditNikke('${n.id}')" title="Edit">✎</button>` : '';
+                        const burstVal = n.burst1 ? "I" : n.burst2 ? "II" : "III";
+                        const editForm = n.custom ? `
+      <div class="edit-inline" id="edit-inline-${n.id}">
+        <div class="edit-row-name">
+          <input id="edit-name-${n.id}" value="${n.name}" placeholder="Name"/>
+        </div>
+        <div class="edit-row">
+          <select id="edit-burst-${n.id}">
+            <option value="I"${burstVal === "I" ? " selected" : ""}>Burst I</option>
+            <option value="II"${burstVal === "II" ? " selected" : ""}>Burst II</option>
+            <option value="III"${burstVal === "III" ? " selected" : ""}>Burst III</option>
+          </select>
+          <select id="edit-element-${n.id}">
+            ${NIKKE_ELEMENTS.map(e => `<option value="${e}"${n.element === e ? " selected" : ""}>${e}</option>`).join("")}
+          </select>
+          <select id="edit-weapon-${n.id}">
+            ${Object.entries(NIKKE_WEAPONS).map(([c, nm]) => `<option value="${c}"${n.weapon === c ? " selected" : ""}>${nm}</option>`).join("")}
+          </select>
+        </div>
+        <div class="edit-actions">
+          <button class="edit-cancel-btn" onclick="hideEditNikke('${n.id}')">Cancel</button>
+          <button class="edit-save-btn" onclick="saveEditNikke('${n.id}')">Save</button>
+        </div>
+      </div>` : '';
                         return `<div class="nikke-card">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <div style="display:flex;align-items:center;gap:10px;min-width:0">
           ${nikkeIcon(n.name, 44)}
           <div style="min-width:0"><div class="nikke-name">${n.name}</div><div class="nikke-meta">${n.element || ""} · ${burstDisplay(n)}</div></div>
         </div>
-        <button class="del-btn" onclick="requestDelete('${n.id}')" title="Remove">✕</button>
+        <div style="display:flex;gap:2px">
+          ${editBtn}
+          <button class="del-btn" onclick="requestDelete('${n.id}')" title="Remove">✕</button>
+        </div>
       </div>
       <div class="gear-dots">${dots}</div>
       <div class="del-confirm" id="del-confirm-${n.id}">
@@ -3425,6 +3679,7 @@
         <button class="del-confirm-yes" onclick="doDelete('${n.id}')">Yes</button>
         <button class="del-confirm-no"  onclick="hideDeleteConfirm('${n.id}')">No</button>
       </div>
+      ${editForm}
     </div>`;
                     })
                     .join("");
@@ -4607,36 +4862,29 @@
                 let bodyHtml = "";
 
                 if (viewMode === "teams") {
-                    // ── TEAMS VIEW: drag-and-drop ──
+                    // ── TEAMS VIEW: 5 dedicated slots per team ──
                     const maxEntryDmg = Math.max(...raid.entries.map((e) => e.damage || 0), 1);
 
-                    function renderChip(e) {
-                        const n = state.nikkes.find((x) => x.id === e.nikkeId);
+                    function renderSlot(teamNum, slotIdx, entry) {
+                        if (!entry) {
+                            // Empty slot — show picker
+                            return `<div class="raid-slot raid-slot-empty" data-team="${teamNum}" data-slot="${slotIdx}">
+        <button class="raid-slot-add-btn" onclick="openRaidSlotPicker('${raid.id}',${teamNum},${slotIdx})" title="Add Nikke">+</button>
+      </div>`;
+                        }
+                        const n = state.nikkes.find((x) => x.id === entry.nikkeId);
                         const name = n ? n.name : "(removed)";
-                        const dmg = e.damage ? `${Number(e.damage).toLocaleString()}M` : "";
+                        const dmg = entry.damage ? `${Number(entry.damage).toLocaleString()}M` : "";
                         const elem = n && n.element ? elemIcon(n.element) : "";
-                        const pct = maxEntryDmg > 0 ? ((e.damage || 0) / maxEntryDmg) * 100 : 0;
-                        const dmgColor = !e.damage
-                            ? "#64748b"
-                            : pct >= 80
-                              ? "#4ade80"
-                              : pct >= 50
-                                ? "#60a5fa"
-                                : pct >= 25
-                                  ? "#fbbf24"
-                                  : "#f87171";
-                        const isAssigned = (e.team || 0) !== 0;
-                        const removeBtn = isAssigned
-                            ? `<button class="raid-chip-remove" onclick="event.stopPropagation();setRaidTeam('${raid.id}',${e.origIdx},0)" title="Unassign">&times;</button>`
-                            : "";
-                        const dmgDisplay = `<span class="raid-chip-dmg-label" style="color:${dmgColor}">${dmg || "—"}</span><button class="raid-chip-edit-btn" onclick="event.stopPropagation();startEditChipDmg(this,'${raid.id}',${e.origIdx},${e.damage || 0})" title="Edit damage">▪</button>`;
-                        return `<div class="raid-chip" draggable="true" data-raid-entry="${raid.id}-${e.origIdx}">
+                        const pct = maxEntryDmg > 0 ? ((entry.damage || 0) / maxEntryDmg) * 100 : 0;
+                        const dmgColor = !entry.damage ? "#64748b" : pct >= 80 ? "#4ade80" : pct >= 50 ? "#60a5fa" : pct >= 25 ? "#fbbf24" : "#f87171";
+                        return `<div class="raid-slot raid-slot-filled">
         ${n ? nikkeIcon(name, 38) : ""}
         <div class="raid-chip-info">
           <span class="raid-chip-name">${name}</span>
-          <div class="raid-chip-meta">${elem}${dmgDisplay}</div>
+          <div class="raid-chip-meta">${elem}<span class="raid-chip-dmg-label" style="color:${dmgColor}">${dmg || "—"}</span><button class="raid-chip-edit-btn" onclick="event.stopPropagation();startEditChipDmg(this,'${raid.id}',${entry.origIdx},${entry.damage || 0})" title="Edit damage">▪</button></div>
         </div>
-        ${removeBtn}
+        <button class="raid-chip-remove" onclick="event.stopPropagation();removeRaidTeamSlot('${raid.id}',${entry.origIdx})" title="Remove">&times;</button>
       </div>`;
                     }
 
@@ -4650,17 +4898,12 @@
                             const members = teams[t] || [];
                             const total = teamTotals[ti];
                             const pct = maxTeamDmg > 0 ? (total / maxTeamDmg) * 100 : 0;
-                            const dmgColor =
-                                total === 0
-                                    ? "#64748b"
-                                    : pct >= 80
-                                      ? "#4ade80"
-                                      : pct >= 50
-                                        ? "#60a5fa"
-                                        : pct >= 25
-                                          ? "#fbbf24"
-                                          : "#f87171";
-                            const chips = members.map(renderChip).join("");
+                            const dmgColor = total === 0 ? "#64748b" : pct >= 80 ? "#4ade80" : pct >= 50 ? "#60a5fa" : pct >= 25 ? "#fbbf24" : "#f87171";
+                            // Build 5 slots (filled + empty)
+                            const slots = [];
+                            for (let i = 0; i < 5; i++) {
+                                slots.push(renderSlot(t, i, members[i] || null));
+                            }
                             const note = (raid.teamNotes && raid.teamNotes[t]) || "";
                             return `<div class="raid-team-lane" data-team="${t}" data-raid-id="${raid.id}">
         <div class="raid-team-header">
@@ -4673,28 +4916,26 @@
             <button class="raid-note-clear" onclick="clearTeamNote('${raid.id}',${t})" title="Clear note">&times;</button>
           </div>
         </div>
-        <div class="raid-team-drop" data-team="${t}" data-raid-id="${raid.id}">${chips}${!members.length ? '<div class="raid-drop-hint">Drop Nikkes here</div>' : ""}</div>
+        <div class="raid-team-slots">${slots.join("")}</div>
       </div>`;
                         })
                         .join("");
 
-                    const unassigned = teams[0] || [];
-                    const unassignedChips = unassigned.map(renderChip).join("");
-                    const sortBtns = `<div style="display:flex;gap:4px;margin-left:auto">
-      <button class="btn-sm${sortMode === "damage" ? " active-sort" : ""}" onclick="setRaidSort2('damage')" style="font-size:10px;padding:1px 5px">Dmg ↓</button>
-      <button class="btn-sm${sortMode === "default" ? " active-sort" : ""}" onclick="setRaidSort2('default')" style="font-size:10px;padding:1px 5px">Order</button>
-    </div>`;
-
                     bodyHtml = `
-      <div class="info-note" style="margin-bottom:10px">Drag Nikkes into teams. Enter damage in millions (e.g. 48 = 48M).</div>
-      <div class="raid-teams-grid">${teamLanes}</div>
-      <div class="raid-unassigned-section">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-          <span style="font-size:13px;font-weight:600;color:#475569;text-transform:uppercase;letter-spacing:.05em">Unassigned (${unassigned.length})</span>
-          ${sortBtns}
+      <div class="info-note" style="margin-bottom:10px">Click <strong>+</strong> to assign a Nikke to a slot. Enter damage in millions (e.g. 48 = 48M).</div>
+      <div class="raid-teams-grid">${teamLanes}</div>`;
+
+                    // Slot picker modal (hidden by default, shown by openRaidSlotPicker)
+                    bodyHtml += `<div class="raid-slot-picker-overlay" id="raid-slot-picker-overlay" onclick="if(event.target===this)closeRaidSlotPicker()">
+      <div class="raid-slot-picker-modal">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <span style="font-size:14px;font-weight:600;color:#f1f5f9">Pick a Nikke</span>
+          <button class="del-btn" onclick="closeRaidSlotPicker()" style="font-size:16px">✕</button>
         </div>
-        <div class="raid-team-drop raid-unassigned-drop" data-team="0" data-raid-id="${raid.id}">${unassignedChips}${!unassigned.length ? '<div class="raid-drop-hint">All Nikkes assigned!</div>' : ""}</div>
-      </div>`;
+        <input class="form-input" id="raid-slot-picker-search" placeholder="Search..." oninput="filterRaidSlotPicker()" style="margin-bottom:8px"/>
+        <div id="raid-slot-picker-list" class="raid-slot-picker-list"></div>
+      </div>
+    </div>`;
                 } else {
                     // ── DAMAGE VIEW: flat ranked list ──
                     const dmgSortMode = state.raidDmgSortMode || "damage";
@@ -4810,7 +5051,7 @@
     </div>
     ${bodyHtml}
     ${
-        available.length
+        viewMode === "damage" && available.length
             ? `
       <div style="display:flex;gap:6px;margin-top:10px;align-items:center">
         <select id="raid-add-nikke" class="form-input" style="flex:1;font-size:14px;padding:4px 6px">
@@ -4821,8 +5062,7 @@
             : ""
     }`;
 
-                // Attach drag-and-drop event listeners (only in teams view)
-                if (viewMode === "teams") initRaidDragDrop(raid.id);
+                // No more drag-and-drop setup needed
             }
 
             function addRaidEntry(raidId) {
@@ -4951,6 +5191,68 @@
                         }
                     });
                 });
+            }
+
+            // ── Slot-based team picker ───────────────────────────────────
+            let _slotPickerState = { raidId: null, team: null, slot: null };
+
+            function openRaidSlotPicker(raidId, teamNum, slotIdx) {
+                _slotPickerState = { raidId, team: teamNum, slot: slotIdx };
+                const overlay = document.getElementById("raid-slot-picker-overlay");
+                if (overlay) {
+                    overlay.classList.add("show");
+                    const searchInput = document.getElementById("raid-slot-picker-search");
+                    if (searchInput) { searchInput.value = ""; searchInput.focus(); }
+                    filterRaidSlotPicker();
+                }
+            }
+
+            function closeRaidSlotPicker() {
+                const overlay = document.getElementById("raid-slot-picker-overlay");
+                if (overlay) overlay.classList.remove("show");
+                _slotPickerState = { raidId: null, team: null, slot: null };
+            }
+
+            function filterRaidSlotPicker() {
+                const searchInput = document.getElementById("raid-slot-picker-search");
+                const list = document.getElementById("raid-slot-picker-list");
+                if (!list) return;
+                const q = searchInput ? searchInput.value.toLowerCase() : "";
+                const raid = state.raids.find((r) => r.id === _slotPickerState.raidId);
+                if (!raid) { list.innerHTML = ""; return; }
+                // Get IDs already assigned in this raid
+                const assignedIds = new Set(raid.entries.map((e) => e.nikkeId));
+                // Show all nikkes in roster, filtering out already-assigned ones
+                const available = state.nikkes
+                    .filter((n) => !assignedIds.has(n.id) && n.name.toLowerCase().includes(q))
+                    .sort((a, b) => a.name.localeCompare(b.name));
+                list.innerHTML = available.map((n) => {
+                    const elem = n.element ? elemIcon(n.element) : "";
+                    return `<div class="raid-slot-picker-item" onclick="pickRaidSlotNikke('${n.id}')">
+      ${nikkeIcon(n.name, 28)}
+      <span>${n.name}</span>
+      <span style="font-size:12px;color:#64748b;margin-left:auto">${elem} ${burstDisplay(n)}</span>
+    </div>`;
+                }).join("") || '<div style="padding:8px;color:#475569;font-size:13px">No available Nikkes</div>';
+            }
+
+            function pickRaidSlotNikke(nikkeId) {
+                const { raidId, team } = _slotPickerState;
+                const raid = state.raids.find((r) => r.id === raidId);
+                if (!raid) return;
+                // Add entry with the assigned team
+                raid.entries.push({ nikkeId, damage: 0, team });
+                save();
+                closeRaidSlotPicker();
+                renderRaidMain(raid);
+            }
+
+            function removeRaidTeamSlot(raidId, entryIdx) {
+                const raid = state.raids.find((r) => r.id === raidId);
+                if (!raid) return;
+                raid.entries.splice(entryIdx, 1);
+                save();
+                renderRaidMain(raid);
             }
 
             let _raidDmgSkipBlur = false;
@@ -5494,9 +5796,39 @@
             // ── My Data Modal ───────────────────────────────────────────
             function showMyData() {
                 document.getElementById("mydata-overlay").classList.add("show");
+                const cloudSection = document.getElementById("mydata-cloud-section");
+                if (cloudSection) {
+                    cloudSection.style.display = currentUser ? "flex" : "none";
+                }
             }
             function dismissMyData() {
                 document.getElementById("mydata-overlay").classList.remove("show");
+            }
+
+            async function pullCloudData() {
+                if (!currentUser) { alert("You must be signed in to pull cloud data."); return; }
+                const cloudData = await loadFromCloud();
+                if (!cloudData || !cloudData.nikkes || cloudData.nikkes.length === 0) {
+                    alert("No cloud data found for your account.");
+                    return;
+                }
+                if (!confirm(`Pull cloud data (${cloudData.nikkes.length} Nikkes)?\n\nThis will replace your current local data (${state.nikkes.length} Nikkes).`)) return;
+                Object.assign(state, cloudData);
+                delete state._updatedAt;
+                migrateState();
+                state.selGear = state.nikkes.length ? state.nikkes[0].id : null;
+                state.selRaid = state.raids.length ? state.raids[state.raids.length - 1].id : null;
+                state.selRaidEdit = state.raids.length ? state.raids[state.raids.length - 1].id : null;
+                try { localStorage.setItem("nikke_v8", JSON.stringify(state)); } catch(e) {}
+                render();
+                dismissMyData();
+            }
+
+            async function pushToCloud() {
+                if (!currentUser) { alert("You must be signed in to push to cloud."); return; }
+                if (!confirm(`Push local data (${state.nikkes.length} Nikkes) to cloud?\n\nThis will overwrite whatever is currently stored in the cloud.`)) return;
+                await uploadLocalToCloud();
+                dismissMyData();
             }
             function clearAllData() {
                 const count = state.nikkes.length;
