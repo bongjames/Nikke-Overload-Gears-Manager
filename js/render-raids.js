@@ -505,11 +505,11 @@ function filterRaidSlotPicker() {
     const q = searchInput ? searchInput.value.toLowerCase() : "";
     const raid = state.raids.find((r) => r.id === _slotPickerState.raidId);
     if (!raid) { list.innerHTML = ""; return; }
-    // Get IDs already assigned in this raid
-    const assignedIds = new Set(raid.entries.map((e) => e.nikkeId));
-    // Show all nikkes in roster, filtering out already-assigned ones
+    // Get IDs already assigned to a team (team > 0) — unassigned (team 0) remain available
+    const assignedToTeamIds = new Set(raid.entries.filter((e) => e.team && e.team > 0).map((e) => e.nikkeId));
+    // Show all nikkes in roster, filtering out ones already assigned to a team
     const available = state.nikkes
-        .filter((n) => !assignedIds.has(n.id) && n.name.toLowerCase().includes(q))
+        .filter((n) => !assignedToTeamIds.has(n.id) && n.name.toLowerCase().includes(q))
         .sort((a, b) => a.name.localeCompare(b.name));
     list.innerHTML = available.map((n) => {
         const elem = n.element ? elemIcon(n.element) : "";
@@ -525,8 +525,13 @@ function pickRaidSlotNikke(nikkeId) {
     const { raidId, team } = _slotPickerState;
     const raid = state.raids.find((r) => r.id === raidId);
     if (!raid) return;
-    // Add entry with the assigned team
-    raid.entries.push({ nikkeId, damage: 0, team });
+    // If the nikke already has an unassigned entry (team 0), reassign it
+    const existing = raid.entries.find((e) => e.nikkeId === nikkeId && (!e.team || e.team === 0));
+    if (existing) {
+        existing.team = team;
+    } else {
+        raid.entries.push({ nikkeId, damage: 0, team });
+    }
     save();
     closeRaidSlotPicker();
     renderRaidMain(raid);
