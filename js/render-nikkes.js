@@ -526,7 +526,10 @@ ${nikke.doll && !isTreasureDoll ? statStepperHtml(nikke.id, "doll", nikke.doll.l
         </div>
       </div>
     </div>`;
-    const bodyHtml = statsPanel + attrTable + slots;
+    // ── Damage Calculator Section ──
+    const dmgCalcHtml = renderDamageCalcPanel(nikke, totals);
+
+    const bodyHtml = statsPanel + attrTable + slots + dmgCalcHtml;
     const existingHdr = area.querySelector("[data-nikke-hdr]");
     if (!existingHdr || existingHdr.dataset.nikkeHdr !== nikke.name) {
         area.innerHTML = `<div data-nikke-hdr="${nikke.name}">${hdrHtml}</div><div id="gear-body-inner">${bodyHtml}</div>`;
@@ -729,4 +732,126 @@ function toggleLock(nid, slot, i) {
     l.locked = !l.locked;
     save();
     renderGearMain(n);
+}
+
+
+// ============================================================
+//  DAMAGE CALCULATOR PANEL — per-Nikke gear impact display
+// ============================================================
+
+function renderDamageCalcPanel(nikke, totals) {
+    const db = NIKKE_DB_MAP.get(nikke.name) || {};
+    const weapon = nikke.weapon || db.weapon || 'AR';
+    const isChargeWeapon = weapon === 'SR' || weapon === 'RL';
+    const hasElement = state.elementalBoss;
+
+    // Gather all gear lines across all 4 slots
+    const allGearLines = [];
+    SLOTS.forEach(slot => {
+        nikke.gear[slot].lines.forEach(l => {
+            if (l.stat && l.val) {
+                allGearLines.push({ stat: l.stat, val: parseFloat(l.val) || 0, slot });
+            }
+        });
+    });
+
+    // If no gear lines at all, show minimal placeholder
+    if (allGearLines.length === 0) {
+        return `
+        <div class="dmg-calc-panel" style="margin-top:16px;background:#0f1320;border:1px solid #1e2535;border-radius:8px;padding:14px 16px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span style="font-size:14px;font-weight:600;color:#bb86fc">⚡ Damage Impact</span>
+            <span style="font-size:11px;color:#475569;background:#1a2235;padding:2px 6px;border-radius:4px">Phase 1 — Gear Multipliers</span>
+          </div>
+          <div style="font-size:13px;color:#475569">Add gear lines to see their damage impact.</div>
+        </div>`;
+    }
+
+    // Build context for this Nikke
+    const context = {
+        weapon,
+        elementAdvantage: hasElement,
+        baseChargeDmg: isChargeWeapon ? 1.5 : 0,
+        // Use defaults for base stats (Phase 1 — we don't have per-Nikke ATK yet)
+        baseATK: 25000,
+        enemyDEF: 5000,
+        baseCritRate: 0.15,
+        baseCritDmg: 0.50,
+        coreHit: true,
+        fullBurst: true,
+    };
+
+    const result = DamageCalc.analyzeGearImpact(allGearLines, context);
+
+    // Build per-line rows sorted by contribution (highest first)
+    const sorted = [...result.perLine].filter(p => p.contribution > 0).sort((a, b) => b.contribution - a.contribution);
+
+    const lineRows = sorted.map(p => {
+        const pct = p.contribution.toFixed(2);
+        const barWidth = Math.min(100, (p.contribution / (result.totalBoostPercent || 1)) * 100);
+        const statColor = getStatColor(p.line.stat);
+        return `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px">
+            <span style="width:120px;color:${statColor};font-weight:500;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.line.stat}</span>
+            <span style="width:50px;color:#94a3b8;flex-shrink:0;text-align:right">${p.line.val}%</span>
+            <div style="flex:1;height:6px;background:#1a2235;border-radius:3px;overflow:hidden">
+                <div style="height:100%;width:${barWidth}%;background:${statColor};border-radius:3px;transition:width 0.2s"></div>
+            </div>
+            <span style="width:60px;text-align:right;color:#64ffda;font-weight:600;flex-shrink:0">+${pct}%</span>
+        </div>`;
+    }).join('');
+
+    // Non-damage lines (Max Ammo, Charge Speed, Hit Rate, DEF)
+    const nonDmgLines = allGearLines.filter(l => {
+        const s = l.stat;
+        return s === 'Max Ammo' || s === 'Charge Speed' || s === 'Hit Rate' || s === 'DEF';
+    });
+    const nonDmgNote = nonDmgLines.length
+        ? `<div style="font-size:11px;color:#475569;margin-top:6px">${nonDmgLines.length} line(s) not shown (${[...new Set(nonDmgLines.map(l => l.stat))].join(', ')}) — no direct per-hit damage effect.</div>`
+        : '';
+
+    return `
+    <div class="dmg-calc-panel" style="margin-top:16px;background:#0f1320;border:1px solid #1e2535;border-radius:8px;padding:14px 16px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <span style="font-size:14px;font-weight:600;color:#bb86fc">⚡ Damage Impact</span>
+        <span style="font-size:11px;color:#475569;background:#1a2235;padding:2px 6px;border-radius:4px">Phase 1 — Gear Multipliers</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px">
+        <div style="background:#1a2235;border-radius:6px;padding:8px 10px">
+          <div style="font-size:11px;color:#64748b;margin-bottom:2px">Base Damage</div>
+          <div style="font-size:16px;font-weight:600;color:#e2e8f0">${result.nakedDmg.toLocaleString()}</div>
+        </div>
+        <div style="background:#1a2235;border-radius:6px;padding:8px 10px">
+          <div style="font-size:11px;color:#64748b;margin-bottom:2px">With Gear</div>
+          <div style="font-size:16px;font-weight:600;color:#e2e8f0">${result.fullDmg.toLocaleString()}</div>
+        </div>
+        <div style="background:#1a2235;border-radius:6px;padding:8px 10px">
+          <div style="font-size:11px;color:#64748b;margin-bottom:2px">Difference</div>
+          <div style="font-size:16px;font-weight:600;color:#64ffda">+${(result.fullDmg - result.nakedDmg).toLocaleString()}</div>
+        </div>
+        <div style="background:#1a2235;border-radius:6px;padding:8px 10px">
+          <div style="font-size:11px;color:#64748b;margin-bottom:2px">Boost</div>
+          <div style="font-size:16px;font-weight:600;color:#64ffda">+${result.totalBoostPercent.toFixed(2)}%</div>
+        </div>
+      </div>
+      <div style="margin-bottom:4px;font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:0.05em">Per-line marginal contribution</div>
+      ${lineRows}
+      ${nonDmgNote}
+      <div style="margin-top:10px;font-size:11px;color:#334155;border-top:1px solid #1e2535;padding-top:8px">
+        Assumes: ${hasElement ? 'Element advantage' : 'No element'} · Core hit · Full burst · Base ATK 25k · DEF 5k · 15% CR / 50% CD${isChargeWeapon ? ' · Charge weapon (1.5× base)' : ''}
+      </div>
+    </div>`;
+}
+
+function getStatColor(stat) {
+    switch (stat) {
+        case 'ATK': return '#f87171';
+        case 'Elemental Dmg':
+        case 'Elemental Damage': return '#60a5fa';
+        case 'Critical Rate': return '#fbbf24';
+        case 'Critical Dmg':
+        case 'Critical Damage': return '#fb923c';
+        case 'Charge Dmg':
+        case 'Charge Damage': return '#a78bfa';
+        default: return '#94a3b8';
+    }
 }
