@@ -519,9 +519,15 @@ function _applyScraperImport(scraperData, opts) {
                     nikke.gear[appSlot].lines[i] = { stat: "", val: "", locked: false };
                 } else {
                     const mappedStat = STAT_MAP[scraperLine.stat] || scraperLine.stat;
+                    let rawVal = scraperLine.value || "";
+                    // Normalize value to 2 decimal places to match TIER_TABLE format
+                    if (rawVal) {
+                        const num = parseFloat(String(rawVal).replace('%', ''));
+                        if (!isNaN(num)) rawVal = num.toFixed(2);
+                    }
                     nikke.gear[appSlot].lines[i] = {
                         stat: mappedStat,
-                        val: scraperLine.value || "",
+                        val: rawVal,
                         locked: false,
                     };
                 }
@@ -630,4 +636,21 @@ function loadDbPriorities(nid) {
     save();
     renderPrioMain(n);
     renderPriority();
+}
+
+function loadAllDbPriorities() {
+    if (!confirm("This will overwrite priorities for all Nikkes that have database recommendations. Continue?")) return;
+    let count = 0;
+    for (const n of state.nikkes) {
+        const prios = dbOverloadToPriorities(n.name);
+        if (prios.length > 0) {
+            n.priorities = prios;
+            count++;
+        }
+    }
+    save();
+    renderPriority();
+    renderGear();
+    renderOverview();
+    alert(`Loaded priorities for ${count} Nikke(s) from database.`);
 }

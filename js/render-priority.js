@@ -59,7 +59,7 @@ function renderPriority() {
   </div>`;
 
     el.innerHTML = `<div class="two-col">
-    <div class="nikke-sidebar">${filterHtml}<div class="nikke-list">${list}</div></div>
+    <div class="nikke-sidebar">${filterHtml}<div style="margin-bottom:6px"><button class="add-line-btn" style="width:100%;font-size:13px" onclick="loadAllDbPriorities()" title="Populate all Nikkes from database overload recommendations">↺ Load all from database</button></div><div class="nikke-list">${list}</div></div>
     <div id="prio-main">${state.selPrio ? "" : '<div class="empty-state">← Select a Nikke</div>'}</div>
   </div>`;
     if (_prioSidebarSearch) filterPrioSidebarList();

@@ -346,12 +346,13 @@ function renderGearMain(nikke) {
                     (l) => `<option value="${l}" ${line.stat === l ? "selected" : ""}>${l}</option>`,
                 ).join("");
                 const unit = line.stat && IS_PCT.has(line.stat) ? "%" : "";
+                const normalVal = line.val ? parseFloat(String(line.val).replace('%', '')).toFixed(2) : "";
                 const tierOpts =
                     line.stat && TIER_TABLE[line.stat]
                         ? TIER_TABLE[line.stat]
                               .map((v, ti) => {
                                   const vStr = v.toFixed(2);
-                                  return `<option value="${vStr}"${String(line.val ?? "").trim() === vStr ? " selected" : ""}>${vStr}</option>`;
+                                  return `<option value="${vStr}"${normalVal === vStr ? " selected" : ""}>${vStr}</option>`;
                               })
                               .join("")
                         : "";
