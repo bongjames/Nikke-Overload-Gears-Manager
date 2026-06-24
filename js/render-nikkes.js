@@ -525,10 +525,6 @@ ${nikke.doll && !isTreasureDoll ? statStepperHtml(nikke.id, "doll", nikke.doll.l
           ${metaLine}
         </div>
       </div>
-      <label class="elemental-toggle" title="Include Elemental Dmg in gain calculations">
-        <input type="checkbox" onchange="toggleElementalBoss(this.checked)" ${state.elementalBoss ? "checked" : ""} style="accent-color:#3b82f6"/>
-        <span>Elemental boss</span>
-      </label>
     </div>`;
     const bodyHtml = statsPanel + attrTable + slots;
     const existingHdr = area.querySelector("[data-nikke-hdr]");

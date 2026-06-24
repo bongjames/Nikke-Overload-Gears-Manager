@@ -290,6 +290,12 @@ function migrateState() {
             const dbEntry = NIKKE_DATABASE.find((e) => e.name === n.name);
             n.element = dbEntry ? dbEntry.element : "";
         }
+        if (n.burst1 === undefined) {
+            const dbEntry = NIKKE_DATABASE.find((e) => e.name === n.name);
+            n.burst1 = dbEntry ? (dbEntry.burst1 || false) : false;
+            n.burst2 = dbEntry ? (dbEntry.burst2 || false) : false;
+            n.burst3 = dbEntry ? (dbEntry.burst3 || false) : true;
+        }
         n.priorities.forEach((p) => {
             if (!p.targetTier) p.targetTier = 11;
             if (!p.count) p.count = 1;
