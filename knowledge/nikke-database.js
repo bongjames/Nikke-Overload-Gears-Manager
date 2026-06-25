@@ -5,6 +5,16 @@
 
 const SLOTS = ["Helmet", "Chest", "Gloves", "Boots"];
 
+// Base stats provided by each gear slot when leveled, with relative weight.
+// Source: nikke.gg/equipment — arrows indicate relative stat magnitude.
+// Helmet: ATK▲▲▲, HP▲  |  Chest: ATK▲, HP▲▲▲  |  Gloves: ATK▲▲, DEF▲  |  Boots: HP▲▲, DEF▲▲
+const GEAR_SLOT_STATS = {
+    Helmet: { ATK: 3, HP: 1 },
+    Chest:  { ATK: 1, HP: 3 },
+    Gloves: { ATK: 2, DEF: 1 },
+    Boots:  { HP: 2, DEF: 2 },
+};
+
 const NIKKE_ELEMENTS = ["Fire", "Water", "Wind", "Electric", "Iron"];
 const NIKKE_MANUFACTURERS = ["Elysion", "Missilis", "Tetra", "Pilgrim", "Abnormal"];
 const NIKKE_WEAPONS = {

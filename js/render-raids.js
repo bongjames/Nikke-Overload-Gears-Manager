@@ -304,20 +304,17 @@ function renderRaidMain(raid) {
                     rockEffCell = `<span style="color:${effColor};font-weight:600" title="Best slot: ${e.bestSlot}">${e.bestEff.toFixed(2)}M/rock</span>`;
                 }
 
-                // Skills recommendation
-                let skillsCell = '<span style="color:#475569">—</span>';
+                // Skills recommendation — separate columns for S1, S2, Burst
+                let skillCells = ['<span style="color:#475569">—</span>', '<span style="color:#475569">—</span>', '<span style="color:#475569">—</span>'];
                 if (db && db.build && db.build.skill && db.build.skill.pve && db.build.skill.pve.rec) {
                     const rec = db.build.skill.pve.rec;
-                    const cur = { s1: n.skill1 ?? 0, s2: n.skill2 ?? 0, s3: n.skill3 ?? 0 };
-                    const defs = [];
-                    [["s1", "S1"], ["s2", "S2"], ["s3", "S3"]].forEach(([k, lbl]) => {
-                        if (rec[k] != null && cur[k] < rec[k]) defs.push(`<span style="color:#f59e0b">${lbl} ${cur[k]}→${rec[k]}</span>`);
+                    const cur = [n.skill1 ?? 0, n.skill2 ?? 0, n.skill3 ?? 0];
+                    const recVals = [rec.s1, rec.s2, rec.s3];
+                    skillCells = recVals.map((target, i) => {
+                        if (target == null) return '<span style="color:#475569">—</span>';
+                        if (cur[i] >= target) return '<span style="color:#4ade80">✓</span>';
+                        return `<span style="color:#f59e0b">${cur[i]}→${target}</span>`;
                     });
-                    if (defs.length) {
-                        skillsCell = defs.join(" ");
-                    } else {
-                        skillsCell = '<span style="color:#4ade80">✓</span>';
-                    }
                 }
 
                 // Dolls recommendation
@@ -354,6 +351,21 @@ function renderRaidMain(raid) {
                     }
                 }
 
+                // Gear Level recommendation — separate columns for Helmet, Chest, Gloves
+                const gearSlots = ["Helmet", "Chest", "Gloves"];
+                const gearCells = gearSlots.map((slot) => {
+                    const g = n.gear[slot];
+                    const tier = g.tier || 0;
+                    const lv = g.lv || 0;
+                    if (tier >= 10 && lv >= 5) {
+                        return '<span style="color:#4ade80">✓</span>';
+                    } else if (tier >= 10) {
+                        return `<span style="color:#f59e0b">Lv${lv}→5</span>`;
+                    } else {
+                        return `<span style="color:#f59e0b">T${tier || "?"}→T10</span>`;
+                    }
+                });
+
                 return `<tr class="rank-row" onclick="goToGearNikke('${e.nikkeId}')" style="cursor:pointer" title="View in Gear Tracker">
         <td style="font-size:13px;color:#475569;width:24px">${rank + 1}</td>
         <td style="width:36px;text-align:center">${teamBadge}</td>
@@ -361,9 +373,14 @@ function renderRaidMain(raid) {
         <td style="color:${dmgColor};font-weight:600;text-align:right">${dmgDisplay}</td>
         <td style="text-align:right">${potentialCell}</td>
         <td style="text-align:right">${rockEffCell}</td>
-        <td style="text-align:center">${skillsCell}</td>
+        <td style="text-align:center">${skillCells[0]}</td>
+        <td style="text-align:center">${skillCells[1]}</td>
+        <td style="text-align:center">${skillCells[2]}</td>
         <td style="text-align:center">${dollCell}</td>
         <td style="text-align:center">${bondCell}</td>
+        <td style="text-align:center">${gearCells[0]}</td>
+        <td style="text-align:center">${gearCells[1]}</td>
+        <td style="text-align:center">${gearCells[2]}</td>
       </tr>`;
             })
             .join("");
@@ -372,7 +389,7 @@ function renderRaidMain(raid) {
             bodyHtml = `
       <div class="info-note" style="margin-bottom:10px">Showing recommendations for all Nikkes assigned to teams. Click a row to open in Gear Tracker.</div>
       <table class="attr-table" style="width:100%">
-        <tr><th>#</th><th>Tm</th><th>Nikke</th><th class="sort-header" style="text-align:right" onclick="setRaidRecSort('damage')">Damage${sortArrow("damage")}</th><th class="sort-header" style="text-align:right" onclick="setRaidRecSort('potential')">Potential${sortArrow("potential")}</th><th class="sort-header" style="text-align:right" onclick="setRaidRecSort('rockeff')">Rock Eff${sortArrow("rockeff")}</th><th style="text-align:center">Skills</th><th style="text-align:center">Dolls</th><th style="text-align:center">Bond</th></tr>
+        <tr><th>#</th><th>Tm</th><th>Nikke</th><th class="sort-header" style="text-align:right" onclick="setRaidRecSort('damage')">Damage${sortArrow("damage")}</th><th class="sort-header" style="text-align:right" onclick="setRaidRecSort('potential')">Potential${sortArrow("potential")}</th><th class="sort-header" style="text-align:right" onclick="setRaidRecSort('rockeff')">Rock Eff${sortArrow("rockeff")}</th><th style="text-align:center">S1</th><th style="text-align:center">S2</th><th style="text-align:center">Burst</th><th style="text-align:center">Dolls</th><th style="text-align:center">Bond</th><th style="text-align:center">Helm</th><th style="text-align:center">Chest</th><th style="text-align:center">Gloves</th></tr>
         ${rows}
       </table>`;
         } else {
