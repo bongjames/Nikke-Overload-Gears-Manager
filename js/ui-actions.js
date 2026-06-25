@@ -1,4 +1,23 @@
 ﻿// ============================================================
+//  SKILL TARGET TOGGLE (rec / max)
+// ============================================================
+
+function setSkillTarget(val) {
+    if (state.skillTarget === val) return;
+    state.skillTarget = val;
+    save();
+    renderOverview();
+    if (state.selGear) {
+        const n = state.nikkes.find((x) => x.id === state.selGear);
+        if (n) renderGearMain(n);
+    }
+    if (state.selRaidEdit) {
+        const raid = state.raids.find((r) => r.id === state.selRaidEdit);
+        if (raid) renderRaidMain(raid);
+    }
+}
+
+// ============================================================
 //  DELETE WITH INLINE CONFIRM
 //  (browser confirm() is blocked in iframes, so we use inline UI)
 // ============================================================

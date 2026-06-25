@@ -1146,6 +1146,36 @@ details[open] > .verdict-title {
     border-color: #3b82f6;
 }
 
+/* ── Segmented toggle (e.g. Rec / Max skill target) ── */
+.seg-toggle {
+    display: inline-flex;
+    border: 1px solid #2d3f5e;
+    border-radius: 6px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+.seg-toggle button {
+    font-size: 11px;
+    padding: 2px 7px;
+    border: none;
+    background: transparent;
+    color: #64748b;
+    cursor: pointer;
+    transition: background 0.1s, color 0.1s;
+    line-height: 1.4;
+}
+.seg-toggle button + button {
+    border-left: 1px solid #2d3f5e;
+}
+.seg-toggle button.seg-active {
+    background: #1e3a5f;
+    color: #60a5fa;
+}
+.seg-toggle button:hover:not(.seg-active) {
+    background: #1a2235;
+    color: #94a3b8;
+}
+
 /* ── Raid Teams Drag & Drop ── */
 .raid-teams-grid {
     display: grid;

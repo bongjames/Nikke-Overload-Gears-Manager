@@ -336,7 +336,9 @@ function buildSkillsView() {
         if (_overviewElement && n.element !== _overviewElement) continue;
         if (raidIds && !raidIds.has(n.id)) continue;
         const db = NIKKE_DB_MAP.get(n.name);
-        const rec = db && db.build && db.build.skill && db.build.skill.pve ? db.build.skill.pve.rec : null;
+        const pve = db && db.build && db.build.skill && db.build.skill.pve;
+        if (!pve) continue;
+        const rec = skillTargetVals(pve);
         if (!rec) continue;
         const cur = { s1: n.skill1 ?? 0, s2: n.skill2 ?? 0, s3: n.skill3 ?? 0 };
         const defs = [];
@@ -375,7 +377,7 @@ function buildSkillsView() {
         )
         .join("");
     const html = rows.length
-        ? `<div class="section-label" style="margin-top:1rem">Skill recommendedations<span style="font-size:12px;color:#475569;font-weight:400"> (current → recommended)</span></div>
+        ? `<div class="section-label" style="margin-top:1rem;display:flex;align-items:center;gap:8px">Skill recommendations<span style="font-size:12px;color:#475569;font-weight:400"> (current → ${state.skillTarget === "rec" ? "recommended" : "max"})</span><span class="seg-toggle" style="margin-left:auto"><button class="${state.skillTarget === "rec" ? "seg-active" : ""}" onclick="setSkillTarget('rec')">Rec</button><button class="${state.skillTarget === "max" ? "seg-active" : ""}" onclick="setSkillTarget('max')">Max</button></span></div>
     <table class="attr-table" style="width:100%;table-layout:fixed">
       <colgroup><col style="width:5%"><col style="width:30%"><col style="width:12%"><col style="width:53%"></colgroup>
       <tr><th>Prio.</th><th>Nikke</th><th>Power</th><th>Skills below rec</th></tr>

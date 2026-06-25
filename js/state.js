@@ -12,6 +12,7 @@ let state = {
     selRaidEdit: null,
     rankSort: "efficiency",
     rankSortAsc: false,
+    skillTarget: "rec",
     gearElementFilter: "",
     gearManufacturerFilter: "",
     gearWeaponFilter: "",
