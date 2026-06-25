@@ -2,6 +2,24 @@
 //  HELPER FUNCTIONS
 // ============================================================
 
+// Returns the skill target values {s1, s2, s3} from a pve object based on state.skillTarget.
+// "rec" uses pve.rec directly; "max" takes the highest value across all four tiers.
+function skillTargetVals(pve) {
+    if (!pve) return null;
+    if (state.skillTarget === "max") {
+        const out = {};
+        ["s1", "s2", "s3"].forEach((k) => {
+            const vals = [pve.start, pve.min, pve.rec, pve.max]
+                .filter(Boolean)
+                .map((t) => t[k])
+                .filter((v) => v != null);
+            out[k] = vals.length ? Math.max(...vals) : null;
+        });
+        return out.s1 == null && out.s2 == null && out.s3 == null ? null : out;
+    }
+    return pve.rec || null;
+}
+
 function scorePiece(nikke, slot) {
     const lines = nikke.gear[slot].lines;
     if (lines.every((l) => !l.stat)) return null;

@@ -306,8 +306,9 @@ function renderRaidMain(raid) {
 
                 // Skills recommendation
                 let skillsCell = '<span style="color:#475569">—</span>';
-                if (db && db.build && db.build.skill && db.build.skill.pve && db.build.skill.pve.rec) {
-                    const rec = db.build.skill.pve.rec;
+                const skillPve = db && db.build && db.build.skill && db.build.skill.pve;
+                if (skillPve && skillTargetVals(skillPve)) {
+                    const rec = skillTargetVals(skillPve);
                     const cur = { s1: n.skill1 ?? 0, s2: n.skill2 ?? 0, s3: n.skill3 ?? 0 };
                     const defs = [];
                     [["s1", "S1"], ["s2", "S2"], ["s3", "S3"]].forEach(([k, lbl]) => {
@@ -372,7 +373,7 @@ function renderRaidMain(raid) {
             bodyHtml = `
       <div class="info-note" style="margin-bottom:10px">Showing recommendations for all Nikkes assigned to teams. Click a row to open in Gear Tracker.</div>
       <table class="attr-table" style="width:100%">
-        <tr><th>#</th><th>Tm</th><th>Nikke</th><th class="sort-header" style="text-align:right" onclick="setRaidRecSort('damage')">Damage${sortArrow("damage")}</th><th class="sort-header" style="text-align:right" onclick="setRaidRecSort('potential')">Potential${sortArrow("potential")}</th><th class="sort-header" style="text-align:right" onclick="setRaidRecSort('rockeff')">Rock Eff${sortArrow("rockeff")}</th><th style="text-align:center">Skills</th><th style="text-align:center">Dolls</th><th style="text-align:center">Bond</th></tr>
+        <tr><th>#</th><th>Tm</th><th>Nikke</th><th class="sort-header" style="text-align:right" onclick="setRaidRecSort('damage')">Damage${sortArrow("damage")}</th><th class="sort-header" style="text-align:right" onclick="setRaidRecSort('potential')">Potential${sortArrow("potential")}</th><th class="sort-header" style="text-align:right" onclick="setRaidRecSort('rockeff')">Rock Eff${sortArrow("rockeff")}</th><th style="text-align:center"><span style="display:inline-flex;align-items:center;gap:5px">Skills<span class="seg-toggle"><button class="${state.skillTarget === "rec" ? "seg-active" : ""}" onclick="setSkillTarget('rec')">Rec</button><button class="${state.skillTarget === "max" ? "seg-active" : ""}" onclick="setSkillTarget('max')">Max</button></span></span></th><th style="text-align:center">Dolls</th><th style="text-align:center">Bond</th></tr>
         ${rows}
       </table>`;
         } else {

@@ -170,6 +170,7 @@ auth.onAuthStateChanged(async (user) => {
             selRaidEdit: null,
             rankSort: "efficiency",
             rankSortAsc: false,
+            skillTarget: "rec",
             gearElementFilter: "",
             gearSidebarSort: "power",
             gearSidebarSortDir: "desc",
@@ -284,6 +285,7 @@ function migrateState() {
     if (state.selRaid === undefined) state.selRaid = null;
     if (state.selRaidEdit === undefined) state.selRaidEdit = null;
     if (state.rankSortAsc === undefined) state.rankSortAsc = false;
+    if (state.skillTarget === undefined) state.skillTarget = "rec";
     state.nikkes.forEach((n) => {
         n.id = n.id.replace(".", "");
         if (!n.element) {

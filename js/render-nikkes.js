@@ -435,7 +435,7 @@ ${tierOpts}
     // Editable Nikke stats: Power / Bond / Limit Break / Cores / Cube / Doll
     const db = NIKKE_DB_MAP.get(nikke.name) || {};
     const bondMax = bondMaxFor(nikke) ?? 0;
-    const skillRec = db.build && db.build.skill && db.build.skill.pve ? db.build.skill.pve.rec : null;
+    const skillRec = db.build && db.build.skill && db.build.skill.pve ? skillTargetVals(db.build.skill.pve) : null;
     const lbMax = db.rarity === "SSR" ? 3 : db.rarity === "SR" ? 2 : 0;
     const coresMax = db.rarity === "SSR" ? 7 : 0;
     const fieldLabelCss = "font-size:12px;color:#64748b;letter-spacing:.04em";
@@ -478,13 +478,15 @@ ${tierOpts}
         <label style="display:flex;flex-direction:column;gap:3px"><span style="${fieldLabelCss}">Bond</span>
           ${statStepperHtml(nikke.id, "bond", nikke.bond, 0, bondMax, false, undefined, bondMax === 0)}</label>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 10px;margin-top:8px">
-        <label style="display:flex;flex-direction:column;gap:3px"><span style="${fieldLabelCss}">Skill 1${skillRec ? ` <span style="color:#475569">· rec ${skillRec.s1}</span>` : ""}</span>
-          ${statStepperHtml(nikke.id, "skill1", nikke.skill1, 1, 10, false)}</label>
-        <label style="display:flex;flex-direction:column;gap:3px"><span style="${fieldLabelCss}">Skill 2${skillRec ? ` <span style="color:#475569">· rec ${skillRec.s2}</span>` : ""}</span>
-          ${statStepperHtml(nikke.id, "skill2", nikke.skill2, 1, 10, false)}</label>
-        <label style="display:flex;flex-direction:column;gap:3px"><span style="${fieldLabelCss}">Skill 3${skillRec ? ` <span style="color:#475569">· rec ${skillRec.s3}</span>` : ""}</span>
-          ${statStepperHtml(nikke.id, "skill3", nikke.skill3, 1, 10, false)}</label>
+      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) auto;column-gap:10px;row-gap:3px;margin-top:8px">
+        <span style="${fieldLabelCss}">Skill 1${skillRec ? ` <span style="color:#475569">· ${state.skillTarget === "rec" ? "rec" : "max"} ${skillRec.s1}</span>` : ""}</span>
+        <span style="${fieldLabelCss}">Skill 2${skillRec ? ` <span style="color:#475569">· ${state.skillTarget === "rec" ? "rec" : "max"} ${skillRec.s2}</span>` : ""}</span>
+        <span style="${fieldLabelCss}">Skill 3${skillRec ? ` <span style="color:#475569">· ${state.skillTarget === "rec" ? "rec" : "max"} ${skillRec.s3}</span>` : ""}</span>
+        <span></span>
+        ${statStepperHtml(nikke.id, "skill1", nikke.skill1, 1, 10, false)}
+        ${statStepperHtml(nikke.id, "skill2", nikke.skill2, 1, 10, false)}
+        ${statStepperHtml(nikke.id, "skill3", nikke.skill3, 1, 10, false)}
+        <span class="seg-toggle" style="align-self:stretch"><button class="${state.skillTarget === "rec" ? "seg-active" : ""}" onclick="setSkillTarget('rec')">Rec</button><button class="${state.skillTarget === "max" ? "seg-active" : ""}" onclick="setSkillTarget('max')">Max</button></span>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;margin-top:8px">
         <label style="display:flex;flex-direction:column;gap:3px"><span style="${fieldLabelCss}">Cube</span>
