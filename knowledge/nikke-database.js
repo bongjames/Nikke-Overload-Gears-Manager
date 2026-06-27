@@ -5553,20 +5553,47 @@ const ALL_LINES = [
 // Stats that are always trash ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â never worth keeping
 const ALWAYS_TRASH = new Set(["DEF"]);
 
-// Element icon URLs from Prydwen CDN
-const ELEMENT_ICON = {
-    Fire: "https://cdn.prydwen.gg/images/nikke/icons/fire_bg.webp",
-    Water: "https://cdn.prydwen.gg/images/nikke/icons/water_bg.webp",
-    Wind: "https://cdn.prydwen.gg/images/nikke/icons/wind_bg.webp",
-    Electric: "https://cdn.prydwen.gg/images/nikke/icons/ele_bg.webp",
-    Iron: "https://cdn.prydwen.gg/images/nikke/icons/iron_bg.webp",
-};
-
 function elemIcon(element) {
-    const url = ELEMENT_ICON[element];
-    return url
-        ? `<img src="${url}" alt="${element}" style="width:20px;height:20px;vertical-align:middle;border-radius:3px;object-fit:contain">`
-        : "";
+    if (!element) return "";
+    return `<img src="assets/elements/${element.toLowerCase()}.webp" alt="${element}" style="width:20px;height:20px;vertical-align:middle;border-radius:3px;object-fit:contain">`;
+}
+
+function weaponIcon(weapon) {
+    if (!weapon) return "";
+    return `<img src="assets/weapons/weapon_${weapon.toLowerCase()}.webp" alt="${weapon}" style="width:20px;height:20px;vertical-align:middle;border-radius:3px;object-fit:contain">`;
+}
+
+// Pass 1/2/3 for a single burst type, or "All" for a nikke that covers all bursts.
+function burstIcon(burst) {
+    if (!burst) return "";
+    return `<img src="assets/bursts/burst_${String(burst).toLowerCase()}.webp" alt="Burst ${burst}" style="width:20px;height:20px;vertical-align:middle;border-radius:3px;object-fit:contain">`;
+}
+
+function classIcon(cls) {
+    if (!cls) return "";
+    return `<img src="assets/classes/${cls.toLowerCase()}.webp" alt="${cls}" style="width:20px;height:20px;vertical-align:middle;border-radius:3px;object-fit:contain">`;
+}
+
+function rarityIcon(rarity) {
+    if (!rarity) return "";
+    return `<img src="assets/rarities/rarity_${rarity.toLowerCase()}.webp" alt="${rarity}" style="width:20px;height:20px;vertical-align:middle;border-radius:3px;object-fit:contain">`;
+}
+
+function manufacturerIcon(manufacturer) {
+    if (!manufacturer) return "";
+    return `<img src="assets/manufacturers/${manufacturer.toLowerCase()}.webp" alt="${manufacturer}" style="width:20px;height:20px;vertical-align:middle;border-radius:3px;object-fit:contain">`;
+}
+
+// slot: "Helmet", "Chest", "Gloves", or "Boots"
+function equipmentIcon(slot) {
+    if (!slot) return "";
+    return `<img src="assets/equipment/${slot.toLowerCase()}.webp" alt="${slot}" style="width:20px;height:20px;vertical-align:middle;border-radius:3px;object-fit:contain">`;
+}
+
+// stat: "ATK", "HP", or "DEF"
+function statIcon(stat) {
+    if (!stat) return "";
+    return `<img src="assets/stats/stat_${stat.toLowerCase()}.webp" alt="${stat}" style="width:20px;height:20px;vertical-align:middle;border-radius:3px;object-fit:contain">`;
 }
 
 // Nikke portrait icon from Prydwen CDN
