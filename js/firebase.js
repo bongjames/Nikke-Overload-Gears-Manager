@@ -642,8 +642,8 @@ function loadDbPriorities(nid) {
     if (!n) return;
     n.priorities = dbOverloadToPriorities(n.name);
     save();
-    renderPrioMain(n);
-    renderPriority();
+    renderGear();
+    renderOverview();
 }
 
 function loadAllDbPriorities() {
@@ -657,7 +657,6 @@ function loadAllDbPriorities() {
         }
     }
     save();
-    renderPriority();
     renderGear();
     renderOverview();
     alert(`Loaded priorities for ${count} Nikke(s) from database.`);

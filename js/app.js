@@ -3,7 +3,7 @@
 // ============================================================
 
 function switchTab(tab, event) {
-    const tabBtnOrderSwitch = ["overview", "gear", "raids", "priority", "weights", "cubes", "wishlist"];
+    const tabBtnOrderSwitch = ["overview", "gear", "raids", "cubes", "wishlist", "weights"];
     document.querySelectorAll(".tab").forEach((t) => t.classList.remove("active"));
     document.querySelectorAll(".section").forEach((s) => s.classList.remove("active"));
     if (event) {
@@ -20,7 +20,6 @@ function switchTab(tab, event) {
     if (tab === "overview") renderOverview();
     else if (tab === "roster") renderRoster();
     else if (tab === "gear") renderGear();
-    else if (tab === "priority") renderPriority();
     else if (tab === "raids") renderRaids();
     else if (tab === "weights") renderWeights();
     else if (tab === "cubes") renderCubes();
@@ -29,6 +28,7 @@ function switchTab(tab, event) {
 
 function goToGearNikke(nikkeId) {
     state.selGear = nikkeId;
+    _gearSubTab = "gear";
     try { localStorage.setItem("nikke_selGear", nikkeId); } catch(e) {}
     // Switch to gear tab
     document.querySelectorAll(".tab").forEach((t) => t.classList.remove("active"));
@@ -45,6 +45,7 @@ function goToGearNikke(nikkeId) {
 
 function goToGearSlot(nikkeId, slot) {
     state.selGear = nikkeId;
+    _gearSubTab = "gear";
     try { localStorage.setItem("nikke_selGear", nikkeId); } catch(e) {}
     // Switch to gear tab
     document.querySelectorAll(".tab").forEach((t) => t.classList.remove("active"));
@@ -77,7 +78,6 @@ function render() {
     renderOverview();
     renderRoster();
     renderGear();
-    renderPriority();
     renderRaids();
     renderWeights();
     renderCubes();
@@ -219,7 +219,7 @@ const _isNewUser = (function handleNewUser() {
         // No data yet — always show the guide on load
         showTutorial();
         // Auto-switch to Nikkes tab
-        const tabBtnOrder = ["overview", "gear", "raids", "priority", "weights", "cubes", "wishlist"];
+        const tabBtnOrder = ["overview", "gear", "raids", "cubes", "wishlist", "weights"];
         const gearIdx = tabBtnOrder.indexOf("gear");
         document.querySelectorAll(".tab").forEach((t) => t.classList.remove("active"));
         document.querySelectorAll(".section").forEach((s) => s.classList.remove("active"));
@@ -238,7 +238,7 @@ if (!_isNewUser) {
     const initTab = new URLSearchParams(window.location.search).get("tab");
     if (initTab && document.getElementById(initTab)) {
         // Map section IDs to tab button indices (roster has no button)
-        const tabBtnOrder = ["overview", "gear", "raids", "priority", "weights", "cubes", "wishlist"];
+        const tabBtnOrder = ["overview", "gear", "raids", "cubes", "wishlist", "weights"];
         const btnIdx = tabBtnOrder.indexOf(initTab);
         if (btnIdx >= 0) {
             document.querySelectorAll(".tab").forEach((t) => t.classList.remove("active"));

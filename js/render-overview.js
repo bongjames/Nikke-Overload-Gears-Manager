@@ -2,10 +2,8 @@
 //  RENDER: OVERVIEW
 // ============================================================
 
-let _overviewSearch = "";
-
-// Which overview recommendation view is active: rockeff | equipment | skills | dolls | bond
-let _overviewView = "rockeff";
+// Which overview recommendation view is active: equipment | skills | dolls | bond
+let _overviewView = "equipment";
 
 // Element filter for Equipment/Skills/Dolls/Bond views
 let _overviewElement = "";
@@ -53,161 +51,6 @@ function getOverviewRaidIds() {
     const raid = state.raids.find((r) => r.id === _overviewRaid);
     if (!raid) return null;
     return new Set(raid.entries.filter((e) => (e.team || 0) !== 0).map((e) => e.nikkeId));
-}
-
-function filterOverviewList() {
-    const input = document.getElementById("overview-search");
-    if (!input) return;
-    _overviewSearch = input.value.toLowerCase();
-    document.querySelectorAll("#overview .rank-row").forEach((el) => {
-        el.style.display = el.dataset.name.includes(_overviewSearch) ? "" : "none";
-    });
-}
-
-// ── Overview view: Rock Efficiency (rock efficiency ranking) ──
-function buildRockEffView() {
-    const nk = state.nikkes;
-
-    // Build efficiency ranking: gain% per rock for each incomplete slot
-    // If a raid is selected, filter to only those nikkes and weight by damage
-    const selRaid = state.selRaid ? state.raids.find((r) => r.id === state.selRaid) : null;
-    const raidNikkeIds = selRaid ? new Set(selRaid.entries.map((e) => e.nikkeId)) : null;
-    const raidDmgMap = {};
-    if (selRaid)
-        selRaid.entries.forEach((e) => {
-            raidDmgMap[e.nikkeId] = e.damage || 0;
-        });
-
-    const rankings = [];
-    const savedElementalBoss = state.elementalBoss;
-    nk.forEach((n) => {
-        if (!n.priorities.length) return;
-        if (raidNikkeIds && !raidNikkeIds.has(n.id)) return; // filter by raid
-        // If raid has an element weakness, only count Elemental Dmg for matching Nikkes
-        if (selRaid && selRaid.element && n.element !== selRaid.element) {
-            state.elementalBoss = false;
-        } else {
-            state.elementalBoss = savedElementalBoss;
-        }
-        SLOTS.forEach((slot) => {
-            const v = getVerdict(n, slot);
-            if (!v || v.cls === "v-keep") return; // skip done slots
-            let rocks = 0,
-                gainLabel = "",
-                weightedGainRaw = 0;
-            if (v.options) {
-                const rec = v.options.find((o) => o.recommended) || v.options[0];
-                rocks = rec.rocks;
-                gainLabel = rec.gain;
-                weightedGainRaw = rec.dpsGain || 0;
-            } else {
-                rocks = v.rocks;
-                gainLabel = v.gain || "";
-                weightedGainRaw = v.dpsGain || 0;
-            }
-            if (rocks <= 0 || weightedGainRaw <= 0) return;
-            // Weight by damage if raid selected
-            const dmg = raidDmgMap[n.id] || 0;
-            const weightedGain = dmg > 0 ? (weightedGainRaw / 100) * dmg : weightedGainRaw;
-            const efficiency = weightedGain / rocks;
-            rankings.push({
-                nikkeId: n.id,
-                nikke: n.name,
-                slot,
-                rocks,
-                gain: weightedGainRaw,
-                gainLabel,
-                efficiency,
-                dmg,
-                weightedGain,
-            });
-        });
-    });
-    state.elementalBoss = savedElementalBoss;
-    rankings.sort((a, b) => b.efficiency - a.efficiency);
-
-    // Raid selector dropdown
-    const raidOpts = [...state.raids]
-        .reverse()
-        .map((r) => {
-            const dn = `${r.season ? "Season " + r.season + " · " : ""}${r.name}${r.element ? " — " + r.element : ""}`;
-            return `<option value="${r.id}" ${state.selRaid === r.id ? "selected" : ""}>${dn}</option>`;
-        })
-        .join("");
-    const raidSelector = state.raids.length
-        ? `
-    <select class="form-input" style="font-size:14px;padding:3px 8px;width:auto;display:inline-block;margin-left:8px" onchange="selectRaidFilter(this.value)">
-      <option value="">All Nikkes</option>${raidOpts}
-    </select>`
-        : "";
-
-    const effLabel = selRaid ? "dmg/rock" : "%/rock";
-
-    // Sort rankings by selected column
-    const sortBy = state.rankSort || "efficiency";
-    const asc = state.rankSortAsc ? 1 : -1;
-    if (sortBy === "dmgGain") {
-        rankings.sort((a, b) => asc * ((a.gain / 100) * (a.dmg || 0) - (b.gain / 100) * (b.dmg || 0)));
-    } else if (sortBy === "dmg") {
-        rankings.sort((a, b) => asc * ((a.dmg || 0) - (b.dmg || 0)));
-    } else {
-        rankings.sort((a, b) => asc * (a.efficiency - b.efficiency));
-    }
-
-    const sortArrow = (col) => (sortBy === col ? (state.rankSortAsc ? " ▲" : " ▼") : "");
-    const rankingHtml = rankings.length
-        ? (() => {
-              const top10 = rankings.slice(0, 10);
-              const next10 = rankings.slice(10, 20);
-              const renderRow = (
-                  r,
-                  i,
-              ) => `<tr class="rank-row" data-name="${r.nikke.toLowerCase()}" onclick="goToGearSlot('${r.nikkeId}','${r.slot}')">
-        <td style="color:#475569">${i + 1}</td>
-        <td style="font-weight:500"><div style="display:flex;align-items:center;gap:6px">${nikkeIcon(r.nikke, 22)}<span>${r.nikke}</span></div></td>
-        <td>${r.slot}</td>
-        <td>~${r.rocks}</td>
-        <td style="color:#4ade80">${r.gainLabel}</td>
-        ${selRaid ? `<td style="color:#94a3b8">${r.dmg ? r.dmg + "M" : "—"}</td><td style="color:#60a5fa;font-weight:600">${r.dmg ? "+" + ((r.gain / 100) * r.dmg).toFixed(2) + "M" : "—"}</td>` : ""}
-        <td style="font-weight:700;color:${selRaid ? (r.efficiency >= 0.5 ? "#4ade80" : r.efficiency >= 0.1 ? "#fbbf24" : "#f87171") : r.efficiency >= 1 ? "#4ade80" : r.efficiency >= 0.3 ? "#fbbf24" : "#f87171"}">${selRaid ? r.efficiency.toFixed(2) + "M/rock" : r.efficiency.toFixed(3) + "%/rock"}</td>
-      </tr>`;
-              const toggleBtn = next10.length
-                  ? `<tr id="rank-toggle-row"><td colspan="99" style="text-align:center;padding:8px">
-      <button class="btn-sm" onclick="var el=document.getElementById('rank-next10');var btn=this;if(el.style.display==='none'){el.style.display='';btn.textContent='Hide #11–${Math.min(20, rankings.length)} ▲'}else{el.style.display='none';btn.textContent='Show next 10 ▼'}">Show next 10 ▼</button>
-    </td></tr>`
-                  : "";
-              const next10Rows = next10.length
-                  ? `<tbody id="rank-next10" style="display:none">${next10.map((r, i) => renderRow(r, i + 10)).join("")}</tbody>`
-                  : "";
-              return `<div class="section-label" style="margin-top:1.5rem">Rock efficiency ranking${raidSelector} <span style="font-size:12px;color:#475569;font-weight:400">(${selRaid ? "damage gain per rock" : "gain% per rock"}, higher = better)</span></div>
-    <table class="attr-table" style="width:100%;table-layout:fixed">
-      <colgroup>
-        <col style="width:4%">
-        <col style="width:${selRaid ? "20%" : "25%"}">
-        <col style="width:8%">
-        <col style="width:8%">
-        <col style="width:${selRaid ? "24%" : "40%"}">
-        ${selRaid ? `<col style="width:10%"><col style="width:12%">` : ""}
-        <col style="width:${selRaid ? "14%" : "15%"}">
-      </colgroup>
-      <tr><th>Prio.</th><th>Nikke</th><th>Slot</th><th>Rocks</th><th>Gain</th>${selRaid ? `<th class="sort-header" onclick="setRankSort('dmg')">DMG${sortArrow("dmg")}</th><th class="sort-header" onclick="setRankSort('dmgGain')">DMG Gain${sortArrow("dmgGain")}</th>` : ""}<th class="sort-header" onclick="setRankSort('efficiency')">Efficiency${sortArrow("efficiency")}</th></tr>
-      ${top10.map((r, i) => renderRow(r, i)).join("")}
-      ${toggleBtn}
-      ${next10Rows}
-    </table>`;
-          })()
-        : `<div class="section-label" style="margin-top:1.5rem">Rock efficiency ranking${raidSelector}</div><div style="font-size:14px;color:#475569">No actionable slots to rank</div>`;
-
-    const html = `
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
-      <input id="overview-search" class="form-input" placeholder="Search Nikke..." value="${_overviewSearch.replace(/"/g, "&quot;")}" oninput="filterOverviewList()" style="font-size:13px;padding:4px 8px;width:160px"/>
-      <label class="elemental-toggle" title="Include Elemental Dmg in gain calculations" style="margin-left:auto">
-        <input type="checkbox" id="elemental-chk" onchange="toggleElementalBoss(this.checked)" ${state.elementalBoss ? "checked" : ""} style="accent-color:#3b82f6"/>
-        <span>Elemental boss</span>
-      </label>
-    </div>
-    ${rankingHtml}`;
-    return { count: rankings.length, html };
 }
 
 // ── Overview view: Equipment (Prydwen overload gear recommendations) ──
@@ -495,19 +338,18 @@ function buildBondView() {
 
 function renderOverview() {
     const el = document.getElementById("overview");
-    const view = _overviewView || "rockeff";
+    const view = _overviewView || "equipment";
     const views = {
-        rockeff: { label: "Rock Efficiency", data: buildRockEffView() },
         equipment: { label: "Equipment", data: buildEquipmentView() },
         skills: { label: "Skills", data: buildSkillsView() },
         dolls: { label: "Dolls", data: buildDollsView() },
         bond: { label: "Bond", data: buildBondView() },
     };
-    const active = views[view] || views.rockeff;
+    const active = views[view] || views.equipment;
     const btn = (key) =>
         `<button type="button" class="metric-card ov-btn${view === key ? " active" : ""}" onclick="setOverviewView('${key}')">
         <div class="metric-val">${views[key].data.count}</div><div class="metric-label">${views[key].label}</div></button>`;
-    const showElementFilter = ["equipment", "skills", "dolls", "bond"].includes(view);
+    const showElementFilter = true;
     const raidOpts = [...state.raids]
         .reverse()
         .map((r) => {
@@ -531,8 +373,13 @@ function renderOverview() {
     </div>`
         : "";
     el.innerHTML = `
+    <div style="display:flex;align-items:center;margin-bottom:10px">
+      <label class="elemental-toggle" title="Include Elemental Dmg in gain and verdict calculations" style="margin-left:auto">
+        <input type="checkbox" id="elemental-chk" onchange="toggleElementalBoss(this.checked)" ${state.elementalBoss ? "checked" : ""} style="accent-color:#3b82f6"/>
+        <span>Elemental boss</span>
+      </label>
+    </div>
     <div class="ov-grid">
-      ${btn("rockeff")}
       ${btn("equipment")}
       ${btn("skills")}
       ${btn("dolls")}
@@ -540,7 +387,6 @@ function renderOverview() {
     </div>
     ${elementFilter}
     ${active.data.html}`;
-    if (view === "rockeff" && _overviewSearch) filterOverviewList();
 }
 
 function toggleElementalBoss(checked) {
@@ -554,18 +400,3 @@ function toggleElementalBoss(checked) {
     }
 }
 
-function selectRaidFilter(raidId) {
-    state.selRaid = raidId || null;
-    save();
-    renderOverview();
-}
-
-function setRankSort(col) {
-    if (state.rankSort === col) {
-        state.rankSortAsc = !state.rankSortAsc;
-    } else {
-        state.rankSort = col;
-        state.rankSortAsc = false; // default desc for new column
-    }
-    renderOverview();
-}

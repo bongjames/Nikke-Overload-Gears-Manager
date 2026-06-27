@@ -737,6 +737,34 @@ details[open] > .verdict-title {
 }
 
 /* ── Attribute summary table ── */
+/* ── Gear / Priorities sub-tabs (within a Nikke's detail panel) ── */
+.gear-subtab-bar {
+    display: flex;
+    gap: 2px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid #1e2535;
+}
+.gear-subtab {
+    font-size: 14px;
+    padding: 6px 18px;
+    border: none;
+    background: none;
+    color: #64748b;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    white-space: nowrap;
+    transition: color 0.15s;
+}
+.gear-subtab:hover {
+    color: #94a3b8;
+}
+.gear-subtab.active {
+    color: #f1f5f9;
+    font-weight: 500;
+    border-bottom: 2px solid #3b82f6;
+}
+
 .attr-summary {
     margin-bottom: 10px;
     background: #151c2b;
@@ -872,7 +900,7 @@ details[open] > .verdict-title {
 /* ── Overview ── */
 .ov-grid {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 10px;
     margin-bottom: 1.5rem;
 }
@@ -1725,7 +1753,6 @@ details[open] > .verdict-title {
     }
     #overview,
     #gear-main,
-    #prio-main,
     #raid-main {
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;

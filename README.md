@@ -14,10 +14,9 @@ Nikke Manager gives you a full picture of your roster's investment gaps and help
 
 | Tab                 | Purpose                                                                                                                                            |
 | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Overview**        | Dashboard with five sub-views — Rock Efficiency, Equipment, Skills, Dolls, and Bond — each showing what needs attention across your roster         |
-| **Nikkes**          | Add characters to your roster, enter their rolled stat lines per gear slot, and get a keep / lock+reroll / reset verdict with estimated rock costs |
+| **Overview**        | Dashboard with four sub-views — Equipment, Skills, Dolls, and Bond — each showing what needs attention across your roster                         |
+| **Nikkes**          | Add characters to your roster, then use the **Gear** and **Priorities** sub-tabs per Nikke — enter rolled stat lines per gear slot for a keep / lock+reroll / reset verdict with rock costs, and set which stats matter (e.g. ATK + Elemental DMG) and how many of each you need across all 4 pieces |
 | **Solo Raids**      | Track your solo raid teams and damage scores                                                                                                       |
-| **Line Priorities** | Set which stats matter for each Nikke (e.g. ATK + Elemental DMG) and how many of each you need across all 4 pieces                                 |
 | **Weights**         | Customise how much each stat is worth in the scoring formula                                                                                       |
 | **Cubes**           | Track your Harmony Cube levels and see which Nikkes are equipped with each cube                                                                    |
 | **Wishlist**        | Recommended SSR Nikkes to wish for across the Elysion, Missilis, Tetra, and Pilgrim/Over-spec pools                                                |
@@ -26,7 +25,6 @@ Nikke Manager gives you a full picture of your roster's investment gaps and help
 
 | Sub-view            | What it shows                                                                                                                       |
 | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| **Rock Efficiency** | Ranks all your Nikkes' gear slots by %gain per rock — see where rocks have the most impact, optionally weighted by Solo Raid damage |
 | **Equipment**       | Lists overload gear lines below Prydwen recommendations, sorted by OL priority                                                      |
 | **Skills**          | Lists skill levels below recommended, sorted by skill priority and bossing tier                                                     |
 | **Dolls**           | Shows which high-bossing Nikkes (tier S+) still need their recommended Collection Doll                                              |

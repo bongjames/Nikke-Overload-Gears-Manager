@@ -4,6 +4,8 @@
 
 let _gearSidebarCache = "";
 let _gearSidebarSearch = "";
+// Active sub-tab within a Nikke's detail panel: "gear" or "priorities"
+let _gearSubTab = "gear";
 
 function filterGearSidebarList() {
     const input = document.getElementById("nikke-sidebar-search");
@@ -171,7 +173,6 @@ function setGearBurstFilter(val) {
     state.gearBurstFilter = val;
     save();
     renderGear();
-    renderPriority();
 }
 
 function setGearSidebarSort(val) {
@@ -241,7 +242,6 @@ function setGearElementFilter(val) {
     state.gearElementFilter = val;
     save();
     renderGear();
-    renderPriority();
 }
 
 function setGearManufacturerFilter(val) {
@@ -268,6 +268,19 @@ function selGearNikke(id) {
     // Only re-render the main content area
     const n = state.nikkes.find((x) => x.id === id);
     if (n) renderGearMain(n);
+}
+
+// Toggle between the "Gear" and "Priorities" sub-tabs in the Nikke detail panel.
+// Just flips visibility — no re-render — so the active tab is preserved on redraw.
+function switchGearSubTab(tab) {
+    _gearSubTab = tab === "priorities" ? "priorities" : "gear";
+    document.querySelectorAll("#gear .gear-subtab").forEach((b) => {
+        b.classList.toggle("active", b.dataset.subtab === _gearSubTab);
+    });
+    const g = document.getElementById("gear-subtab-gear");
+    const p = document.getElementById("gear-subtab-priorities");
+    if (g) g.style.display = _gearSubTab === "gear" ? "" : "none";
+    if (p) p.style.display = _gearSubTab === "priorities" ? "" : "none";
 }
 
 function renderGearMain(nikke) {
@@ -531,7 +544,20 @@ ${nikke.doll && !isTreasureDoll ? statStepperHtml(nikke.id, "doll", nikke.doll.l
     // ── Damage Calculator Section ──
     const dmgCalcHtml = renderDamageCalcPanel(nikke, totals);
 
-    const bodyHtml = statsPanel + attrTable + slots + dmgCalcHtml;
+    // ── Sub-tabs: Gear (attribute totals + slots + damage) vs Priorities ──
+    const sub = _gearSubTab === "priorities" ? "priorities" : "gear";
+    const subTabBar = `
+    <div class="gear-subtab-bar">
+      <button class="gear-subtab ${sub === "gear" ? "active" : ""}" data-subtab="gear" onclick="switchGearSubTab('gear')">Gear</button>
+      <button class="gear-subtab ${sub === "priorities" ? "active" : ""}" data-subtab="priorities" onclick="switchGearSubTab('priorities')">Priorities</button>
+    </div>`;
+    const gearTabHtml = attrTable + slots + dmgCalcHtml;
+    const prioTabHtml = renderPrioContent(nikke);
+    const bodyHtml =
+        statsPanel +
+        subTabBar +
+        `<div id="gear-subtab-gear"${sub === "gear" ? "" : ' style="display:none"'}>${gearTabHtml}</div>` +
+        `<div id="gear-subtab-priorities"${sub === "priorities" ? "" : ' style="display:none"'}>${prioTabHtml}</div>`;
     const existingHdr = area.querySelector("[data-nikke-hdr]");
     if (!existingHdr || existingHdr.dataset.nikkeHdr !== nikke.name) {
         area.innerHTML = `<div data-nikke-hdr="${nikke.name}">${hdrHtml}</div><div id="gear-body-inner">${bodyHtml}</div>`;
