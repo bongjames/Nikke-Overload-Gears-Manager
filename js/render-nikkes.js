@@ -57,9 +57,12 @@ function renderGear() {
     const list =
         filtered
             .map((n) => {
-                const done = SLOTS.filter((s) => dotStatus(n, s) === "done").length;
+                // One dot per gear slot, coloured by that slot's gear status (done/partial/warn/none)
+                const dots = SLOTS.map(
+                    (s) => `<span class="${dotStatus(n, s)}" title="${s}"></span>`,
+                ).join("");
                 return `<div class="nikke-item ${state.selGear === n.id ? "active" : ""}" data-name="${n.name.toLowerCase()}" onclick="selGearNikke('${n.id}')" style="display:flex;align-items:center;gap:8px">
-      ${nikkeIcon(n.name, 34)}<div>${n.name}<div class="nikke-item-sub">${done}/4 slots done</div></div>
+      ${nikkeIcon(n.name, 34)}<div style="min-width:0"><div>${n.name}</div><div class="nikke-item-sub" style="display:flex;align-items:center;gap:6px"><span class="gear-dots-mini">${dots}</span>${elemIcon(n.element, 14)}</div></div>
     </div>`;
             })
             .join("") || '<div style="font-size:14px;color:#475569;padding:6px">No Nikkes match filter</div>';
@@ -99,9 +102,9 @@ function renderGear() {
       <span style="font-size:11px;color:#475569;letter-spacing:0.05em;padding:0 2px">Burst</span>
       <select style="font-size:13px;padding:3px 6px;background:#0f1117;color:#e2e8f0;border:1px solid #2d3f5e;border-radius:5px;width:100%" onchange="setGearBurstFilter(this.value)">
         <option value="">All</option>
-        <option value="I" ${state.gearBurstFilter === "I" ? "selected" : ""}>B1</option>
-        <option value="II" ${state.gearBurstFilter === "II" ? "selected" : ""}>B2</option>
-        <option value="III" ${state.gearBurstFilter === "III" ? "selected" : ""}>B3</option>
+        <option value="I" ${state.gearBurstFilter === "I" ? "selected" : ""}>I</option>
+        <option value="II" ${state.gearBurstFilter === "II" ? "selected" : ""}>II</option>
+        <option value="III" ${state.gearBurstFilter === "III" ? "selected" : ""}>III</option>
       </select>
     </div>
   </div>
@@ -326,7 +329,7 @@ function renderGearMain(nikke) {
             // below target → remaining gap (yellow); at/above target → green ✓
             let statusCell, totState;
             if (!prio) {
-                statusCell = `<span class="at-pill at-pill-trash">Trash</span>`;
+                statusCell = `<span class="at-pill at-pill-trash">✗ Trash</span>`;
                 totState = tot > 0 ? "is-trash" : "is-zero";
             } else if (tgtTotal !== null && tot >= tgtTotal) {
                 statusCell = `<span class="at-pill at-pill-met">✓ Met</span>`;
@@ -484,6 +487,8 @@ ${tierOpts}
     const db = NIKKE_DB_MAP.get(nikke.name) || {};
     const bondMax = bondMaxFor(nikke) ?? 0;
     const skillRec = db.build && db.build.skill && db.build.skill.pve ? skillTargetVals(db.build.skill.pve) : null;
+    // Current-vs-target colour (skills, bond): green once current ≥ target, yellow while below.
+    const targetColor = (cur, tgt) => (tgt == null ? null : (cur ?? 0) >= tgt ? "#4ade80" : "#fcd34d");
     const lbMax = db.rarity === "SSR" ? 3 : db.rarity === "SR" ? 2 : 0;
     const coresMax = db.rarity === "SSR" ? 7 : 0;
     const fieldLabelCss = "font-size:12px;color:#64748b;letter-spacing:.04em";
@@ -493,58 +498,81 @@ ${tierOpts}
         Object.keys(state.cubeLevels ?? {}).filter((tid) => (state.cubeLevels ?? {})[tid] != null),
     );
     const hasUntracked = Object.keys(HARMONY_CUBES).some((tid) => !trackedTids.has(tid));
+    // Recommended PVE cubes for this Nikke — used to mark options with a star and colour the field.
+    const recCubes = (db.build && db.build.cube && db.build.cube.pve) || [];
     const cubeOpts = Object.entries(HARMONY_CUBES)
         .filter(([tid]) => trackedTids.has(tid))
         .map(([tid, name]) => {
             const lv = (state.cubeLevels ?? {})[tid];
-            const label = `${name} - Lv.${lv}`;
-            return `<option value="${tid}" ${nikke.cube && String(nikke.cube.tid) === tid ? "selected" : ""}>${label}</option>`;
+            const isRec = recCubes.includes(name);
+            const isSelected = nikke.cube && String(nikke.cube.tid) === tid;
+            // Star recommended cubes in the dropdown, but not on the selected option — the
+            // closed field mirrors its text and we want it star-free. cubeStarOn/Off (wired to
+            // the select's mousedown/blur) re-adds the star to the selected option only while
+            // the dropdown is open. data-rec marks which options are eligible for that.
+            const star = isRec && !isSelected ? "★ " : "";
+            const label = `${star}${name.replace(/ Cube$/i, "")} - Lv.${lv}`;
+            return `<option value="${tid}" ${isRec ? 'data-rec="1"' : ""} ${isSelected ? "selected" : ""}>${label}</option>`;
         })
         .concat(hasUntracked ? [`<option value="__add_cube__" style="color:#60a5fa">+ Add another cube</option>`] : [])
         .join("");
+    // Colour the selected cube green if it's a recommended PVE cube for this Nikke, yellow if not.
+    const selCubeName = nikke.cube ? HARMONY_CUBES[nikke.cube.tid] ?? nikke.cube.name : null;
+    const cubeColor = selCubeName ? (recCubes.includes(selCubeName) ? "#4ade80" : "#fcd34d") : null;
     const equippedDollDb = nikke.doll ? COLLECTION_DOLLS.find((d) => d.id === nikke.doll.tid) : null;
     const isTreasureDoll = equippedDollDb != null && equippedDollDb.treasure != null;
-    const dollOpts = COLLECTION_DOLLS.filter((d) => {
+    const dollCandidates = COLLECTION_DOLLS.filter((d) => {
         if (nikke.doll && nikke.doll.tid === d.id) return true;
         if (d.treasure != null) return d.treasure === nikke.name;
         return d.weapon === db.weapon;
-    })
+    });
+    const dollOpts = dollCandidates
         .map(
             (d) =>
-                `<option value="${d.id}" ${nikke.doll && nikke.doll.tid === d.id ? "selected" : ""}>[${d.rarity}] ${d.name}</option>`,
+                `<option value="${d.id}" ${nikke.doll && nikke.doll.tid === d.id ? "selected" : ""}>${d.rarity}</option>`,
         )
         .join("");
+    // Colour the doll rarity green when it's the highest available for this Nikke, yellow otherwise.
+    const DOLL_RARITY_RANK = { R: 1, SR: 2, SSR: 3 };
+    const maxDollRank = dollCandidates.reduce((m, d) => Math.max(m, DOLL_RARITY_RANK[d.rarity] ?? 0), 0);
+    const dollRarityColor = equippedDollDb
+        ? (DOLL_RARITY_RANK[equippedDollDb.rarity] ?? 0) >= maxDollRank
+            ? "#4ade80"
+            : "#fcd34d"
+        : null;
+    // Colour the doll level green at max (15), yellow otherwise.
+    const dollLevelColor = nikke.doll && nikke.doll.lv != null ? (nikke.doll.lv >= 15 ? "#4ade80" : "#fcd34d") : null;
     const statsPanel = `
     <div class="nikke-stats-edit" style="background:#0f1320;border:1px solid #1e2535;border-radius:8px;padding:10px 12px;margin-bottom:10px">
-      <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px 10px">
+      <div class="stats-grid-main">
         <label style="display:flex;flex-direction:column;gap:3px"><span style="${fieldLabelCss}">Power</span>
           <input type="text" inputmode="numeric" style="${fieldInputCss}" placeholder="—" value="${nikke.power != null ? nikke.power : ""}" onchange="updateNikkeStat('${nikke.id}','power',this.value)"/></label>
         <label style="display:flex;flex-direction:column;gap:3px"><span style="${fieldLabelCss}">Limit Break</span>
-          ${statStepperHtml(nikke.id, "limitBreak", nikke.limitBreak, 0, lbMax, false, undefined, lbMax === 0)}</label>
+          ${statStepperHtml(nikke.id, "limitBreak", nikke.limitBreak, 0, lbMax, false, undefined, lbMax === 0, null, true)}</label>
         <label style="display:flex;flex-direction:column;gap:3px"><span style="${fieldLabelCss}">Cores</span>
-          ${statStepperHtml(nikke.id, "cores", nikke.cores, 0, coresMax, false, undefined, coresMax === 0)}</label>
+          ${statStepperHtml(nikke.id, "cores", nikke.cores, 0, coresMax, false, undefined, coresMax === 0, null, true)}</label>
         <label style="display:flex;flex-direction:column;gap:3px"><span style="${fieldLabelCss}">Bond</span>
-          ${statStepperHtml(nikke.id, "bond", nikke.bond, 0, bondMax, false, undefined, bondMax === 0)}</label>
+          ${statStepperHtml(nikke.id, "bond", nikke.bond, 0, bondMax, false, undefined, bondMax === 0, bondMax > 0 ? targetColor(nikke.bond, bondMax) : null, true)}</label>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) auto;column-gap:10px;row-gap:3px;margin-top:8px">
-        <span style="${fieldLabelCss}">Skill 1${skillRec ? ` <span style="color:#475569">· ${state.skillTarget === "rec" ? "rec" : "max"} ${skillRec.s1}</span>` : ""}</span>
-        <span style="${fieldLabelCss}">Skill 2${skillRec ? ` <span style="color:#475569">· ${state.skillTarget === "rec" ? "rec" : "max"} ${skillRec.s2}</span>` : ""}</span>
-        <span style="${fieldLabelCss}">Skill 3${skillRec ? ` <span style="color:#475569">· ${state.skillTarget === "rec" ? "rec" : "max"} ${skillRec.s3}</span>` : ""}</span>
+      <div class="stats-grid-skills">
+        <span style="${fieldLabelCss}">Skill 1${skillRec ? ` <span style="color:${targetColor(nikke.skill1, skillRec.s1) || "#475569"}">· ${state.skillTarget === "rec" ? "rec" : "max"} ${skillRec.s1}</span>` : ""}</span>
+        <span style="${fieldLabelCss}">Skill 2${skillRec ? ` <span style="color:${targetColor(nikke.skill2, skillRec.s2) || "#475569"}">· ${state.skillTarget === "rec" ? "rec" : "max"} ${skillRec.s2}</span>` : ""}</span>
+        <span style="${fieldLabelCss}">Skill 3${skillRec ? ` <span style="color:${targetColor(nikke.skill3, skillRec.s3) || "#475569"}">· ${state.skillTarget === "rec" ? "rec" : "max"} ${skillRec.s3}</span>` : ""}</span>
         <span></span>
-        ${statStepperHtml(nikke.id, "skill1", nikke.skill1, 1, 10, false)}
-        ${statStepperHtml(nikke.id, "skill2", nikke.skill2, 1, 10, false)}
-        ${statStepperHtml(nikke.id, "skill3", nikke.skill3, 1, 10, false)}
+        ${statStepperHtml(nikke.id, "skill1", nikke.skill1, 1, 10, false, undefined, false, skillRec ? targetColor(nikke.skill1, skillRec.s1) : null)}
+        ${statStepperHtml(nikke.id, "skill2", nikke.skill2, 1, 10, false, undefined, false, skillRec ? targetColor(nikke.skill2, skillRec.s2) : null)}
+        ${statStepperHtml(nikke.id, "skill3", nikke.skill3, 1, 10, false, undefined, false, skillRec ? targetColor(nikke.skill3, skillRec.s3) : null)}
         <span class="seg-toggle" style="align-self:stretch"><button class="${state.skillTarget === "rec" ? "seg-active" : ""}" onclick="setSkillTarget('rec')">Rec</button><button class="${state.skillTarget === "max" ? "seg-active" : ""}" onclick="setSkillTarget('max')">Max</button></span>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;margin-top:8px">
+      <div class="stats-grid-accessories">
         <label style="display:flex;flex-direction:column;gap:3px"><span style="${fieldLabelCss}">Cube</span>
           <div style="display:flex;gap:4px">
-<select style="${fieldInputCss};flex:1" onchange="updateNikkeCube('${nikke.id}',this.value)"><option value="">None</option>${cubeOpts}</select>
+<select style="${fieldInputCss};flex:1${cubeColor ? `;color:${cubeColor}` : ""}" onmousedown="cubeStarOn(this)" onblur="cubeStarOff(this)" onchange="updateNikkeCube('${nikke.id}',this.value)"><option value="">None</option>${cubeOpts}</select>
           </div></label>
         <label style="display:flex;flex-direction:column;gap:3px"><span style="${fieldLabelCss}">Doll</span>
           <div style="display:flex;gap:4px">
-<select style="${fieldInputCss};flex:1" onchange="updateNikkeDoll('${nikke.id}',this.value)"><option value="">None</option>${dollOpts}</select>
-${nikke.doll && !isTreasureDoll ? statStepperHtml(nikke.id, "doll", nikke.doll.lv, 0, 15, true, "flex:none;width:96px") : ""}
+<select style="${fieldInputCss};flex:1${dollRarityColor ? `;color:${dollRarityColor}` : ""}" onchange="updateNikkeDoll('${nikke.id}',this.value)"><option value="">None</option>${dollOpts}</select>
+${nikke.doll && !isTreasureDoll ? statStepperHtml(nikke.id, "doll", nikke.doll.lv, 0, 15, true, "flex:1", undefined, dollLevelColor) : ""}
           </div></label>
       </div>
     </div>`;
@@ -629,7 +657,7 @@ function clampNikkeStat(n, field, num) {
 
 // Builds a themed −/+ stepper (replaces the native number-input spin buttons).
 // accessory=true targets a cube/doll level (field is "cube"/"doll").
-function statStepperHtml(nid, field, value, min, max, accessory, extraStyle, disabled) {
+function statStepperHtml(nid, field, value, min, max, accessory, extraStyle, disabled, valColor, showMax) {
     const stepFn = accessory ? "stepNikkeAccessoryLv" : "stepNikkeStat";
     const changeFn = accessory ? "updateNikkeAccessoryLv" : "updateNikkeStat";
     const v = value != null ? value : "";
@@ -638,9 +666,17 @@ function statStepperHtml(nid, field, value, min, max, accessory, extraStyle, dis
     const minDis = disabled || (numVal != null && numVal <= min) ? " disabled" : "";
     const maxDis = disabled || (max != null && numVal != null && numVal >= max) ? " disabled" : "";
     const inputDis = disabled ? " disabled" : "";
-    return `<div class="stepper"${extraStyle ? ` style="${extraStyle}"` : ""}>
+    // Optional value colour (e.g. skill level vs target) — bold like the design mockup.
+    const inputStyle = valColor ? ` style="color:${valColor};font-weight:600"` : "";
+    // Optional "/max" suffix beside the value (LB / Cores / Bond) — mockup style.
+    const hasMax = showMax && max != null && Number(max) > 0;
+    const inputHtml = `<input class="stepper-input" type="number" inputmode="numeric" min="${min}" ${maxAttr}step="1" placeholder="—" value="${v}" onchange="${changeFn}('${nid}','${field}',this.value)"${inputDis}${inputStyle}/>`;
+    const mid = hasMax
+        ? `<span class="stepper-valwrap">${inputHtml}<span class="stepper-max">/${max}</span></span>`
+        : inputHtml;
+    return `<div class="stepper${hasMax ? " has-max" : ""}"${extraStyle ? ` style="${extraStyle}"` : ""}>
 <button type="button" class="stepper-btn" tabindex="-1" onmousedown="event.preventDefault()" onclick="${stepFn}('${nid}','${field}',-1)"${minDis}>−</button>
-<input class="stepper-input" type="number" inputmode="numeric" min="${min}" ${maxAttr}step="1" placeholder="—" value="${v}" onchange="${changeFn}('${nid}','${field}',this.value)"${inputDis}/>
+${mid}
 <button type="button" class="stepper-btn" tabindex="-1" onmousedown="event.preventDefault()" onclick="${stepFn}('${nid}','${field}',1)"${maxDis}>+</button>
           </div>`;
 }
@@ -676,6 +712,22 @@ function stepNikkeAccessoryLv(nid, which, delta) {
     n[which].lv = Math.max(0, cur + delta);
     save();
     renderGearMain(n);
+}
+
+// Show the recommendation star on the *selected* cube only while its dropdown is open.
+// mousedown fires just before the native list opens; blur restores the star-free field text.
+// Only the selected option is touched, so the static stars on other recommended options stay put.
+function cubeStarOn(sel) {
+    const o = sel.options[sel.selectedIndex];
+    if (o && o.dataset.rec === "1" && !o.textContent.startsWith("★ ")) {
+        o.textContent = "★ " + o.textContent;
+    }
+}
+function cubeStarOff(sel) {
+    const o = sel.options[sel.selectedIndex];
+    if (o && o.textContent.startsWith("★ ")) {
+        o.textContent = o.textContent.slice(2);
+    }
 }
 
 function updateNikkeCube(nid, tid) {

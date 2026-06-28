@@ -6,7 +6,7 @@
 // Stats whose values are expressed as percentages
 const IS_PCT = new Set([
   'ATK', 'Elemental Dmg', 'Charge Speed', 'Charge Dmg',
-  'Critical Rate', 'Critical Dmg', 'Hit Rate', 'DEF'
+  'Critical Rate', 'Critical Dmg', 'Hit Rate', 'DEF', 'Max Ammo'
 ]);
 
 // Prydwen minimum acceptable values per single line

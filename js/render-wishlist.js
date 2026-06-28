@@ -78,16 +78,16 @@ function renderWishlist() {
                           return `
                     <tr>
                         <td style="color:#64748b;width:1.5rem">${i + 1}</td>
-                        <td>${p.name}${treasureBadge}</td>
+                        <td><div style="display:flex;align-items:center;gap:8px;min-width:0">${nikkeIcon(p.name, 26)}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">${p.name}${treasureBadge}</span></div></td>
                         <td style="color:#64748b">${lbCell}</td>
                         <td style="color:#64748b">${coresCell}</td>
                     </tr>`;
                       })
                       .join("");
         return `
-            <div style="flex:1 1 380px;min-width:0">
-                <div style="font-size:15px;font-weight:600;color:#f1f5f9;margin-bottom:.5rem;padding-bottom:.25rem;border-bottom:1px solid #1e2535">${mfr}</div>
-                <table class="attr-table" style="width:100%;table-layout:fixed">
+            <div style="flex:1 1 380px;min-width:0;background:#151c2b;border:1px solid #1e2535;border-radius:10px;padding:0.9rem">
+                <div style="font-size:15px;font-weight:600;color:#f1f5f9;margin-bottom:.6rem;padding-bottom:.45rem;border-bottom:1px solid #1e2535">${mfr}</div>
+                <table class="attr-table" style="width:100%;table-layout:fixed;min-width:0">
                     <colgroup>
                         <col style="width:2rem">
                         <col>

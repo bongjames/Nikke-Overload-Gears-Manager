@@ -32,7 +32,7 @@ const HARMONY_CUBES = {
     1000302: "Onslaught Cube",
     1000303: "Resilience Cube",
     1000304: "Bastion Cube",
-    1000305: "Adjudant Cube",
+    1000305: "Adjutant Cube",
     1000306: "Wingman Cube",
     1000307: "Quantum Cube",
     1000308: "Vigor Cube",
@@ -98,6 +98,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Abnormal",
         class: "Defender",
         build: {
+            cube: { pve: ["Vigor Cube", "Tempering Cube", "Bastion Cube", "Resilience Cube"] },
             bossing: "B",
             collection: { pvePriority: 4 },
             skill: {
@@ -134,6 +135,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Abnormal",
         class: "Attacker",
         build: {
+            cube: { pve: ["Bastion Cube", "Resilience Cube", "Adjutant Cube"] },
             bossing: "B",
             collection: { pvePriority: 4 },
             skill: {
@@ -160,6 +162,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Abnormal",
         class: "Attacker",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Destruction Cube"] },
             bossing: "S",
             collection: { pvePriority: 9 },
             skill: {
@@ -197,6 +200,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Supporter",
         build: {
+            cube: { pve: ["Bastion Cube", "Resilience Cube"] },
             bossing: "D",
             collection: { pvePriority: null },
             skill: {
@@ -218,6 +222,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Supporter",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Wingman Cube"] },
             bossing: "S",
             collection: { pvePriority: 8 },
             skill: {
@@ -251,6 +256,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Missilis",
         class: "Supporter",
         build: {
+            cube: { pve: ["Resilience Cube", "Adjutant Cube", "Onslaught Cube"] },
             bossing: "D",
             collection: { pvePriority: 1 },
             skill: {
@@ -272,6 +278,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Attacker",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Destruction Cube", "Adjutant Cube"] },
             bossing: "S",
             collection: { pvePriority: 9 },
             skill: {
@@ -302,6 +309,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Supporter",
         build: {
+            cube: { pve: ["Bastion Cube", "Resilience Cube", "Healing Cube", "Vigor Cube"] },
             bossing: "B",
             collection: { pvePriority: 2 },
             skill: {
@@ -329,6 +337,7 @@ const NIKKE_DATABASE = [
         seasonal: true,
         class: "Defender",
         build: {
+            cube: { pve: ["Vigor Cube", "Tempering Cube", "Endurance Cube"] },
             bossing: "F",
             collection: { pvePriority: null },
             skill: { pve: { start: null, min: null, rec: null, max: null }, priority: null },
@@ -347,6 +356,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Elysion",
         class: "Supporter",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube"] },
             bossing: "S",
             collection: { pvePriority: 8 },
             skill: {
@@ -381,6 +391,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Defender",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Wingman Cube"] },
             bossing: "E",
             collection: { pvePriority: null },
             skill: {
@@ -404,6 +415,7 @@ const NIKKE_DATABASE = [
         seasonal: true,
         class: "Supporter",
         build: {
+            cube: { pve: ["Resilience Cube", "Destruction Cube", "Assault Cube"] },
             bossing: "S",
             collection: { pvePriority: 8 },
             skill: {
@@ -442,6 +454,7 @@ const NIKKE_DATABASE = [
         overspec: true,
         class: "Defender",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Destruction Cube"] },
             bossing: "SSS",
             collection: { pvePriority: 10 },
             skill: {
@@ -482,6 +495,7 @@ const NIKKE_DATABASE = [
         seasonal: true,
         class: "Supporter",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Wingman Cube", "Vigor Cube"] },
             bossing: "D",
             collection: { pvePriority: 1 },
             skill: {
@@ -508,6 +522,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Elysion",
         class: "Supporter",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Quantum Cube", "Wingman Cube"] },
             bossing: "A",
             collection: { pvePriority: 5 },
             skill: {
@@ -542,6 +557,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Elysion",
         class: "Attacker",
         build: {
+            cube: { pve: ["Bastion Cube", "Destruction Cube", "Resilience Cube"] },
             bossing: "S",
             collection: { pvePriority: 9 },
             skill: {
@@ -579,6 +595,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Attacker",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Vigor Cube", "Tempering Cube"] },
             bossing: "D",
             collection: { pvePriority: null },
             skill: { pve: { start: null, min: null, rec: null, max: null }, priority: null },
@@ -597,6 +614,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Attacker",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Destruction Cube"] },
             bossing: "S",
             collection: { pvePriority: 7 },
             skill: {
@@ -631,6 +649,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Abnormal",
         class: "Attacker",
         build: {
+            cube: { pve: ["Bastion Cube", "Resilience Cube", "Destruction Cube", "Wingman Cube"] },
             bossing: "A",
             collection: { pvePriority: 6 },
             skill: {
@@ -665,6 +684,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Abnormal",
         class: "Attacker",
         build: {
+            cube: { pve: ["Bastion Cube", "Resilience Cube", "Destruction Cube"] },
             bossing: "S",
             collection: { pvePriority: 7 },
             skill: {
@@ -700,6 +720,7 @@ const NIKKE_DATABASE = [
         seasonal: true,
         class: "Supporter",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Vigor Cube"] },
             bossing: "C",
             collection: { pvePriority: 1 },
             skill: {
@@ -727,6 +748,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Defender",
         build: {
+            cube: { pve: ["Vigor Cube", "Tempering Cube", "Endurance Cube"] },
             bossing: "D",
             collection: { pvePriority: null },
             skill: {
@@ -748,6 +770,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Attacker",
         build: {
+            cube: { pve: ["Vigor Cube", "Tempering Cube", "Endurance Cube"] },
             bossing: "F",
             collection: { pvePriority: null },
             skill: { pve: { start: null, min: null, rec: null, max: null }, priority: null },
@@ -766,6 +789,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Supporter",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Wingman Cube", "Healing Cube"] },
             bossing: "C",
             collection: { pvePriority: 3 },
             skill: {
@@ -792,6 +816,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Defender",
         build: {
+            cube: { pve: ["Vigor Cube", "Healing Cube", "Bastion Cube", "Resilience Cube"] },
             bossing: "A",
             collection: { pvePriority: 5 },
             skill: {
@@ -818,6 +843,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Attacker",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Adjutant Cube", "Destruction Cube"] },
             bossing: "A",
             collection: { pvePriority: 8 },
             skill: {
@@ -857,6 +883,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Elysion",
         class: "Attacker",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube"] },
             bossing: "F",
             collection: { pvePriority: null },
             skill: { pve: { start: null, min: null, rec: null, max: null }, priority: null },
@@ -876,6 +903,7 @@ const NIKKE_DATABASE = [
         seasonal: true,
         class: "Supporter",
         build: {
+            cube: { pve: ["Bastion Cube", "Resilience Cube", "Destruction Cube"] },
             bossing: "S",
             collection: { pvePriority: 9 },
             skill: {
@@ -915,6 +943,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Missilis",
         class: "Defender",
         build: {
+            cube: { pve: ["Resilience Cube", "Vigor Cube", "Healing Cube"] },
             bossing: "D",
             collection: { pvePriority: 1 },
             skill: {
@@ -937,6 +966,7 @@ const NIKKE_DATABASE = [
         seasonal: true,
         class: "Supporter",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Destruction Cube"] },
             bossing: "B",
             collection: { pvePriority: 2 },
             skill: {
@@ -963,6 +993,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Abnormal",
         class: "Attacker",
         build: {
+            cube: { pve: ["Rupture Cube", "Resilience Cube", "Bastion Cube", "Destruction Cube"] },
             bossing: "A",
             collection: { pvePriority: 6 },
             skill: {
@@ -1001,6 +1032,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Pilgrim",
         class: "Defender",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Vigor Cube", "Destruction Cube"] },
             bossing: "SS",
             collection: { pvePriority: 10 },
             skill: {
@@ -1039,6 +1071,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Abnormal",
         class: "Supporter",
         build: {
+            cube: { pve: ["Healing Cube", "Vigor Cube", "Resilience Cube", "Bastion Cube"] },
             bossing: "D",
             collection: { pvePriority: null },
             skill: { pve: { start: { s1: 1, s2: 1, s3: 1 }, min: null, rec: null, max: null }, priority: null },
@@ -1057,6 +1090,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Supporter",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube"] },
             bossing: "D",
             collection: { pvePriority: 2 },
             skill: {
@@ -1083,6 +1117,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Supporter",
         build: {
+            cube: { pve: ["Vigor Cube", "Resilience Cube", "Bastion Cube"] },
             bossing: "D",
             collection: { pvePriority: null },
             skill: {
@@ -1104,6 +1139,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Missilis",
         class: "Defender",
         build: {
+            cube: { pve: ["Resilience Cube", "Vigor Cube", "Tempering Cube", "Endurance Cube"] },
             bossing: "E",
             collection: { pvePriority: null },
             skill: { pve: { start: null, min: null, rec: null, max: null }, priority: null },
@@ -1122,6 +1158,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Pilgrim",
         class: "Defender",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Destruction Cube"] },
             bossing: "SSS",
             collection: { pvePriority: 10 },
             skill: {
@@ -1160,6 +1197,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Supporter",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Adjutant Cube", "Wingman Cube"] },
             bossing: "B",
             collection: { pvePriority: 4 },
             skill: {
@@ -1186,6 +1224,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Elysion",
         class: "Attacker",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Destruction Cube", "Assault Cube"] },
             bossing: "D",
             collection: { pvePriority: null },
             skill: { pve: { start: null, min: null, rec: null, max: null }, priority: null },
@@ -1204,6 +1243,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Elysion",
         class: "Supporter",
         build: {
+            cube: { pve: ["Resilience Cube", "Wingman Cube", "Bastion Cube"] },
             bossing: "A",
             collection: { pvePriority: 4 },
             skill: {
@@ -1230,6 +1270,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Elysion",
         class: "Defender",
         build: {
+            cube: { pve: ["Vigor Cube", "Tempering Cube", "Endurance Cube"] },
             bossing: "F",
             collection: { pvePriority: null },
             skill: { pve: { start: null, min: null, rec: null, max: null }, priority: null },
@@ -1248,6 +1289,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Elysion",
         class: "Defender",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Tempering Cube", "Endurance Cube"] },
             bossing: "B",
             collection: { pvePriority: 3 },
             skill: {
@@ -1283,6 +1325,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Elysion",
         class: "Defender",
         build: {
+            cube: { pve: ["Bastion Cube", "Vigor Cube", "Healing Cube"] },
             bossing: "C",
             collection: { pvePriority: 3 },
             skill: {
@@ -1310,6 +1353,7 @@ const NIKKE_DATABASE = [
         seasonal: true,
         class: "Attacker",
         build: {
+            cube: { pve: ["Resilience Cube"] },
             bossing: "SS",
             collection: { pvePriority: 9 },
             skill: {
@@ -1347,6 +1391,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Supporter",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Wingman Cube", "Onslaught Cube"] },
             bossing: "B",
             collection: { pvePriority: 3 },
             skill: {
@@ -1373,6 +1418,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Pilgrim",
         class: "Supporter",
         build: {
+            cube: { pve: ["Resilience Cube", "Destruction Cube"] },
             bossing: "B",
             collection: { pvePriority: 3 },
             skill: {
@@ -1407,6 +1453,7 @@ const NIKKE_DATABASE = [
         seasonal: true,
         class: "Attacker",
         build: {
+            cube: { pve: ["Bastion Cube", "Piercing Cube", "Resilience Cube", "Destruction Cube"] },
             bossing: "SS",
             collection: { pvePriority: 9 },
             skill: {
@@ -1445,6 +1492,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Missilis",
         class: "Attacker",
         build: {
+            cube: { pve: ["Bastion Cube", "Resilience Cube", "Destruction Cube", "Wingman Cube"] },
             bossing: "S",
             collection: { pvePriority: 9 },
             skill: {
@@ -1485,6 +1533,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Elysion",
         class: "Attacker",
         build: {
+            cube: { pve: ["Destruction Cube", "Resilience Cube", "Bastion Cube"] },
             bossing: "A",
             collection: { pvePriority: 5 },
             skill: {
@@ -1523,6 +1572,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Missilis",
         class: "Attacker",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Destruction Cube", "Onslaught Cube"] },
             bossing: "A",
             collection: { pvePriority: 6 },
             skill: {
@@ -1562,6 +1612,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Missilis",
         class: "Supporter",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Destruction Cube"] },
             bossing: "C",
             collection: { pvePriority: 1 },
             skill: {
@@ -1597,6 +1648,7 @@ const NIKKE_DATABASE = [
         seasonal: true,
         class: "Attacker",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Destruction Cube"] },
             bossing: "S",
             collection: { pvePriority: 6 },
             skill: {
@@ -1635,6 +1687,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Abnormal",
         class: "Attacker",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Destruction Cube", "Adjutant Cube"] },
             bossing: "C",
             collection: { pvePriority: 4 },
             skill: {
@@ -1661,6 +1714,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Elysion",
         class: "Supporter",
         build: {
+            cube: { pve: ["Healing Cube", "Vigor Cube", "Bastion Cube", "Resilience Cube"] },
             bossing: "F",
             collection: { pvePriority: null },
             skill: { pve: { start: { s1: 1, s2: 1, s3: 1 }, min: null, rec: null, max: null }, priority: null },
@@ -1679,6 +1733,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Elysion",
         class: "Supporter",
         build: {
+            cube: { pve: ["Bastion Cube", "Resilience Cube", "Healing Cube", "Vigor Cube"] },
             bossing: "A",
             collection: { pvePriority: 5 },
             skill: {
@@ -1713,6 +1768,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Missilis",
         class: "Attacker",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Assault Cube", "Destruction Cube"] },
             bossing: "D",
             collection: { pvePriority: 2 },
             skill: {
@@ -1741,6 +1797,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Missilis",
         class: "Defender",
         build: {
+            cube: { pve: ["Vigor Cube", "Tempering Cube", "Endurance Cube", "Assault Cube"] },
             bossing: "F",
             collection: { pvePriority: null },
             skill: { pve: { start: null, min: null, rec: null, max: null }, priority: null },
@@ -1759,6 +1816,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Elysion",
         class: "Attacker",
         build: {
+            cube: { pve: ["Resilience Cube", "Adjutant Cube"] },
             bossing: "F",
             collection: { pvePriority: null },
             skill: { pve: { start: null, min: null, rec: null, max: null }, priority: null },
@@ -1777,6 +1835,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Elysion",
         class: "Attacker",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Destruction Cube"] },
             bossing: "A",
             collection: { pvePriority: 5 },
             skill: {
@@ -1815,6 +1874,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Abnormal",
         class: "Attacker",
         build: {
+            cube: { pve: ["Bastion Cube", "Resilience Cube", "Destruction Cube"] },
             bossing: "A",
             collection: { pvePriority: 6 },
             skill: {
@@ -1853,6 +1913,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Supporter",
         build: {
+            cube: { pve: ["Adjutant Cube", "Onslaught Cube", "Resilience Cube", "Destruction Cube"] },
             bossing: "A",
             collection: { pvePriority: 3 },
             skill: {
@@ -1890,6 +1951,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Missilis",
         class: "Supporter",
         build: {
+            cube: { pve: ["Bastion Cube", "Resilience Cube"] },
             bossing: "D",
             collection: { pvePriority: 1 },
             skill: {
@@ -1924,6 +1986,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Defender",
         build: {
+            cube: { pve: ["Vigor Cube", "Bastion Cube", "Resilience Cube", "Healing Cube"] },
             bossing: "D",
             collection: { pvePriority: 2 },
             skill: { pve: { start: null, min: null, rec: null, max: null }, priority: null },
@@ -1943,6 +2006,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Supporter",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Vigor Cube", "Adjutant Cube"] },
             bossing: "C",
             collection: { pvePriority: 2 },
             skill: {
@@ -1976,6 +2040,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Pilgrim",
         class: "Supporter",
         build: {
+            cube: { pve: ["Destruction Cube", "Assault Cube", "Bastion Cube"] },
             bossing: "S",
             collection: { pvePriority: 4 },
             skill: {
@@ -2010,6 +2075,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Elysion",
         class: "Attacker",
         build: {
+            cube: { pve: ["Bastion Cube", "Resilience Cube", "Destruction Cube", "Wingman Cube"] },
             bossing: "C",
             collection: { pvePriority: 1 },
             skill: {
@@ -2045,6 +2111,7 @@ const NIKKE_DATABASE = [
         seasonal: true,
         class: "Attacker",
         build: {
+            cube: { pve: ["Bastion Cube", "Resilience Cube", "Wingman Cube", "Destruction Cube"] },
             bossing: "A",
             collection: { pvePriority: 5 },
             skill: {
@@ -2082,6 +2149,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Missilis",
         class: "Attacker",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Destruction Cube", "Wingman Cube"] },
             bossing: "B",
             collection: { pvePriority: 2 },
             skill: {
@@ -2116,6 +2184,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Pilgrim",
         class: "Attacker",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Wingman Cube", "Onslaught Cube"] },
             bossing: "F",
             collection: { pvePriority: 3 },
             skill: {
@@ -2146,6 +2215,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Elysion",
         class: "Attacker",
         build: {
+            cube: { pve: ["Resilience Cube", "Destruction Cube", "Quantum Cube"] },
             bossing: "SS",
             collection: { pvePriority: 10 },
             skill: {
@@ -2186,6 +2256,7 @@ const NIKKE_DATABASE = [
         seasonal: true,
         class: "Attacker",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Wingman Cube"] },
             bossing: "A",
             collection: { pvePriority: 1 },
             skill: {
@@ -2212,6 +2283,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Abnormal",
         class: "Supporter",
         build: {
+            cube: { pve: ["Resilience Cube", "Adjutant Cube"] },
             bossing: "F",
             collection: { pvePriority: 1 },
             skill: { pve: { start: null, min: null, rec: null, max: null }, priority: null },
@@ -2230,6 +2302,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Pilgrim",
         class: "Attacker",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Destruction Cube", "Wingman Cube"] },
             bossing: "A",
             collection: { pvePriority: 6 },
             skill: {
@@ -2264,6 +2337,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Missilis",
         class: "Defender",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Vigor Cube"] },
             bossing: "E",
             collection: { pvePriority: 1 },
             skill: { pve: { start: { s1: 1, s2: 1, s3: 1 }, min: null, rec: null, max: null }, priority: null },
@@ -2282,6 +2356,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Abnormal",
         class: "Attacker",
         build: {
+            cube: { pve: ["Resilience Cube", "Destruction Cube"] },
             bossing: "A",
             collection: { pvePriority: 4 },
             skill: {
@@ -2309,6 +2384,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Missilis",
         class: "Attacker",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube"] },
             bossing: "B",
             collection: { pvePriority: 4 },
             skill: {
@@ -2345,6 +2421,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Elysion",
         class: "Attacker",
         build: {
+            cube: { pve: ["Resilience Cube"] },
             bossing: "C",
             collection: { pvePriority: 3 },
             skill: {
@@ -2379,6 +2456,7 @@ const NIKKE_DATABASE = [
         seasonal: true,
         class: "Defender",
         build: {
+            cube: { pve: ["Vigor Cube"] },
             bossing: "F",
             collection: { pvePriority: 1 },
             skill: {
@@ -2413,6 +2491,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Abnormal",
         class: "Supporter",
         build: {
+            cube: { pve: ["Bastion Cube", "Resilience Cube"] },
             bossing: "C",
             collection: { pvePriority: null },
             skill: {
@@ -2434,6 +2513,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Elysion",
         class: "Defender",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Destruction Cube", "Tempering Cube"] },
             bossing: "B",
             collection: { pvePriority: 8 },
             skill: {
@@ -2461,6 +2541,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Missilis",
         class: "Attacker",
         build: {
+            cube: { pve: ["Bastion Cube", "Resilience Cube", "Destruction Cube"] },
             bossing: "B",
             collection: { pvePriority: 4 },
             skill: {
@@ -2487,6 +2568,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Supporter",
         build: {
+            cube: { pve: ["Bastion Cube", "Resilience Cube", "Destruction Cube"] },
             bossing: "B",
             collection: { pvePriority: 3 },
             skill: {
@@ -2521,6 +2603,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Pilgrim",
         class: "Attacker",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Adjutant Cube", "Destruction Cube"] },
             bossing: "SS",
             collection: { pvePriority: 10 },
             skill: {
@@ -2558,6 +2641,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Abnormal",
         class: "Supporter",
         build: {
+            cube: { pve: ["Bastion Cube", "Resilience Cube"] },
             bossing: "E",
             collection: { pvePriority: null },
             skill: { pve: { start: null, min: null, rec: null, max: null }, priority: null },
@@ -2576,6 +2660,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Missilis",
         class: "Supporter",
         build: {
+            cube: { pve: ["Vigor Cube", "Tempering Cube", "Resilience Cube", "Bastion Cube"] },
             bossing: "S",
             collection: { pvePriority: 1 },
             skill: {
@@ -2602,6 +2687,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Pilgrim",
         class: "Supporter",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Vigor Cube", "Tempering Cube"] },
             bossing: "SS",
             collection: { pvePriority: 9 },
             skill: {
@@ -2639,6 +2725,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Defender",
         build: {
+            cube: { pve: ["Resilience Cube", "Vigor Cube", "Tempering Cube", "Endurance Cube"] },
             bossing: "E",
             collection: { pvePriority: null },
             skill: {
@@ -2661,6 +2748,7 @@ const NIKKE_DATABASE = [
         seasonal: true,
         class: "Attacker",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Destruction Cube"] },
             bossing: "S",
             collection: { pvePriority: 6 },
             skill: {
@@ -2699,6 +2787,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Elysion",
         class: "Attacker",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Wingman Cube", "Destruction Cube"] },
             bossing: "D",
             collection: { pvePriority: null },
             skill: { pve: { start: { s1: 1, s2: 1, s3: 1 }, min: null, rec: null, max: null }, priority: null },
@@ -2725,6 +2814,7 @@ const NIKKE_DATABASE = [
         seasonal: true,
         class: "Defender",
         build: {
+            cube: { pve: ["Vigor Cube", "Resilience Cube", "Bastion Cube", "Destruction Cube"] },
             bossing: "S",
             collection: { pvePriority: 7 },
             skill: {
@@ -2759,6 +2849,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Abnormal",
         class: "Defender",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Wingman Cube"] },
             bossing: "E",
             collection: { pvePriority: 1 },
             skill: { pve: { start: { s1: 1, s2: 1, s3: 1 }, min: null, rec: null, max: null }, priority: null },
@@ -2777,6 +2868,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Missilis",
         class: "Attacker",
         build: {
+            cube: { pve: ["Bastion Cube", "Vigor Cube", "Healing Cube", "Destruction Cube"] },
             bossing: "B",
             collection: { pvePriority: 5 },
             skill: {
@@ -2810,6 +2902,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Elysion",
         class: "Supporter",
         build: {
+            cube: { pve: ["Healing Cube", "Resilience Cube", "Vigor Cube", "Tempering Cube"] },
             bossing: "B",
             collection: { pvePriority: null },
             skill: { pve: { start: { s1: 4, s2: 4, s3: 1 }, min: null, rec: null, max: null }, priority: "Very Low" },
@@ -2835,6 +2928,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Abnormal",
         class: "Supporter",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Destruction Cube"] },
             bossing: "A",
             collection: { pvePriority: 5 },
             skill: {
@@ -2861,6 +2955,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Supporter",
         build: {
+            cube: { pve: ["Healing Cube", "Resilience Cube", "Vigor Cube"] },
             bossing: "F",
             collection: { pvePriority: null },
             skill: { pve: { start: null, min: null, rec: null, max: null }, priority: null },
@@ -2881,6 +2976,7 @@ const NIKKE_DATABASE = [
         seasonal: true,
         class: "Supporter",
         build: {
+            cube: { pve: ["Healing Cube", "Vigor Cube", "Resilience Cube", "Resilience Cube"] },
             bossing: "C",
             collection: { pvePriority: 2 },
             skill: {
@@ -2902,6 +2998,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Elysion",
         class: "Supporter",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Assault Cube"] },
             bossing: "C",
             collection: { pvePriority: 2 },
             skill: {
@@ -2928,6 +3025,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Elysion",
         class: "Supporter",
         build: {
+            cube: { pve: ["Resilience Cube"] },
             bossing: "SS",
             collection: { pvePriority: 10 },
             skill: {
@@ -2965,6 +3063,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Missilis",
         class: "Attacker",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Destruction Cube", "Adjutant Cube"] },
             bossing: "S",
             collection: { pvePriority: 4 },
             skill: {
@@ -3000,6 +3099,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Supporter",
         build: {
+            cube: { pve: ["Vigor Cube", "Tempering Cube", "Endurance Cube", "Adjutant Cube"] },
             bossing: "F",
             collection: { pvePriority: null },
             skill: { pve: { start: null, min: null, rec: null, max: null }, priority: null },
@@ -3019,6 +3119,7 @@ const NIKKE_DATABASE = [
         seasonal: true,
         class: "Supporter",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube"] },
             bossing: "B",
             collection: { pvePriority: 2 },
             skill: {
@@ -3040,6 +3141,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Missilis",
         class: "Attacker",
         build: {
+            cube: { pve: ["Resilience Cube"] },
             bossing: "F",
             collection: { pvePriority: null },
             skill: { pve: { start: null, min: null, rec: null, max: null }, priority: null },
@@ -3059,6 +3161,7 @@ const NIKKE_DATABASE = [
         overspec: true,
         class: "Attacker",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Destruction Cube"] },
             bossing: "SS",
             collection: { pvePriority: 9 },
             skill: {
@@ -3098,6 +3201,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Attacker",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Adjutant Cube", "Wingman Cube"] },
             bossing: "D",
             collection: { pvePriority: 2 },
             skill: {
@@ -3131,6 +3235,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Attacker",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Destruction Cube", "Piercing Cube"] },
             bossing: "S",
             collection: { pvePriority: 9 },
             skill: {
@@ -3165,6 +3270,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Supporter",
         build: {
+            cube: { pve: ["Resilience Cube"] },
             bossing: "SS",
             collection: { pvePriority: 9 },
             skill: {
@@ -3192,6 +3298,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Elysion",
         class: "Supporter",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Destruction Cube"] },
             bossing: "S",
             collection: { pvePriority: 6 },
             skill: {
@@ -3225,6 +3332,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Abnormal",
         class: "Supporter",
         build: {
+            cube: { pve: ["Vigor Cube", "Tempering Cube", "Endurance Cube"] },
             bossing: "E",
             collection: { pvePriority: 1 },
             skill: { pve: { start: null, min: null, rec: null, max: null }, priority: null },
@@ -3243,6 +3351,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Pilgrim",
         class: "Attacker",
         build: {
+            cube: { pve: ["Bastion Cube", "Resilience Cube", "Wingman Cube", "Destruction Cube"] },
             bossing: "A",
             collection: { pvePriority: 4 },
             skill: {
@@ -3281,6 +3390,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Defender",
         build: {
+            cube: { pve: ["Tempering Cube", "Resilience Cube", "Vigor Cube", "Destruction Cube"] },
             bossing: "SS",
             collection: { pvePriority: 10 },
             skill: {
@@ -3319,6 +3429,7 @@ const NIKKE_DATABASE = [
         seasonal: true,
         class: "Defender",
         build: {
+            cube: { pve: ["Vigor Cube", "Tempering Cube", "Resilience Cube"] },
             bossing: "E",
             collection: { pvePriority: 1 },
             skill: {
@@ -3340,6 +3451,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Missilis",
         class: "Supporter",
         build: {
+            cube: { pve: ["Vigor Cube", "Tempering Cube", "Endurance Cube", "Adjutant Cube"] },
             bossing: "C",
             collection: { pvePriority: 1 },
             skill: {
@@ -3361,6 +3473,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Missilis",
         class: "Supporter",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Vigor Cube", "Destruction Cube"] },
             bossing: "A",
             collection: { pvePriority: 7 },
             skill: {
@@ -3398,6 +3511,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Pilgrim",
         class: "Supporter",
         build: {
+            cube: { pve: ["Destruction Cube", "Resilience Cube", "Bastion Cube", "Vigor Cube"] },
             bossing: "SS",
             collection: { pvePriority: 10 },
             skill: {
@@ -3435,6 +3549,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Elysion",
         class: "Supporter",
         build: {
+            cube: { pve: ["Vigor Cube", "Tempering Cube", "Endurance Cube"] },
             bossing: "E",
             collection: { pvePriority: null },
             skill: { pve: { start: null, min: null, rec: null, max: null }, priority: null },
@@ -3455,6 +3570,7 @@ const NIKKE_DATABASE = [
         seasonal: true,
         class: "Attacker",
         build: {
+            cube: { pve: ["Bastion Cube", "Resilience Cube", "Destruction Cube"] },
             bossing: "E",
             collection: { pvePriority: null },
             skill: { pve: { start: null, min: null, rec: null, max: null }, priority: null },
@@ -3482,6 +3598,7 @@ const NIKKE_DATABASE = [
         overspec: true,
         class: "Attacker",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube"] },
             bossing: "SS",
             collection: { pvePriority: 9 },
             skill: {
@@ -3517,6 +3634,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Defender",
         build: {
+            cube: { pve: ["Vigor Cube", "Tempering Cube", "Endurance Cube"] },
             bossing: "E",
             collection: { pvePriority: 1 },
             skill: { pve: { start: { s1: 1, s2: 1, s3: 1 }, min: null, rec: null, max: null }, priority: null },
@@ -3535,6 +3653,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Attacker",
         build: {
+            cube: { pve: ["Bastion Cube", "Resilience Cube", "Destruction Cube", "Assault Cube"] },
             bossing: "C",
             collection: { pvePriority: 3 },
             skill: {
@@ -3563,6 +3682,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Pilgrim",
         class: "Attacker",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Destruction Cube", "Adjutant Cube"] },
             bossing: "E",
             collection: { pvePriority: null },
             skill: {
@@ -3584,6 +3704,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Pilgrim",
         class: "Defender",
         build: {
+            cube: { pve: ["Resilience Cube", "Vigor Cube", "Tempering Cube", "Endurance Cube"] },
             bossing: "D",
             collection: { pvePriority: 1 },
             skill: {
@@ -3605,6 +3726,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Attacker",
         build: {
+            cube: { pve: ["Bastion Cube", "Resilience Cube", "Destruction Cube"] },
             bossing: "A",
             collection: { pvePriority: 4 },
             skill: {
@@ -3642,6 +3764,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Supporter",
         build: {
+            cube: { pve: ["Healing Cube", "Vigor Cube", "Tempering Cube", "Resilience Cube"] },
             bossing: "B",
             collection: { pvePriority: 3 },
             skill: {
@@ -3663,6 +3786,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Defender",
         build: {
+            cube: { pve: ["Bastion Cube", "Resilience Cube"] },
             bossing: "C",
             collection: { pvePriority: null },
             skill: {
@@ -3689,6 +3813,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Abnormal",
         class: "Supporter",
         build: {
+            cube: { pve: ["Healing Cube", "Vigor Cube", "Tempering Cube", "Endurance Cube"] },
             bossing: "F",
             collection: { pvePriority: null },
             skill: { pve: { start: { s1: 1, s2: 1, s3: 1 }, min: null, rec: null, max: null }, priority: null },
@@ -3707,6 +3832,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Missilis",
         class: "Supporter",
         build: {
+            cube: { pve: ["Resilience Cube", "Vigor Cube", "Healing Cube", "Destruction Cube"] },
             bossing: "D",
             collection: { pvePriority: 1 },
             skill: {
@@ -3728,6 +3854,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Elysion",
         class: "Attacker",
         build: {
+            cube: { pve: ["Bastion Cube", "Resilience Cube", "Destruction Cube"] },
             bossing: "B",
             collection: { pvePriority: 5 },
             skill: {
@@ -3768,6 +3895,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Elysion",
         class: "Defender",
         build: {
+            cube: { pve: ["Bastion Cube", "Vigor Cube", "Tempering Cube", "Endurance Cube"] },
             bossing: "C",
             collection: { pvePriority: 2 },
             skill: {
@@ -3794,6 +3922,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Abnormal",
         class: "Attacker",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Destruction Cube"] },
             bossing: "D",
             collection: { pvePriority: 2 },
             skill: { pve: { start: { s1: 1, s2: 1, s3: 1 }, min: null, rec: null, max: null }, priority: null },
@@ -3820,6 +3949,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Supporter",
         build: {
+            cube: { pve: ["Resilience Cube"] },
             bossing: "SS",
             collection: { pvePriority: 8 },
             skill: {
@@ -3847,6 +3977,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Elysion",
         class: "Attacker",
         build: {
+            cube: { pve: ["Resilience Cube", "Tempering Cube", "Vigor Cube", "Endurance Cube"] },
             bossing: "SS",
             collection: { pvePriority: 10 },
             skill: {
@@ -3883,6 +4014,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Elysion",
         class: "Attacker",
         build: {
+            cube: { pve: ["Bastion Cube", "Resilience Cube", "Destruction Cube"] },
             bossing: "B",
             collection: { pvePriority: 5 },
             skill: {
@@ -3921,6 +4053,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Missilis",
         class: "Supporter",
         build: {
+            cube: { pve: ["Resilience Cube"] },
             bossing: "F",
             collection: { pvePriority: null },
             skill: { pve: { start: null, min: null, rec: null, max: null }, priority: null },
@@ -3939,6 +4072,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Missilis",
         class: "Attacker",
         build: {
+            cube: { pve: ["Bastion Cube", "Resilience Cube", "Wingman Cube"] },
             bossing: "F",
             collection: { pvePriority: null },
             skill: { pve: { start: null, min: null, rec: null, max: null }, priority: null },
@@ -3957,6 +4091,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Missilis",
         class: "Supporter",
         build: {
+            cube: { pve: ["Resilience Cube"] },
             bossing: "F",
             collection: { pvePriority: null },
             skill: { pve: { start: null, min: null, rec: null, max: null }, priority: null },
@@ -3975,6 +4110,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Missilis",
         class: "Supporter",
         build: {
+            cube: { pve: ["Bastion Cube", "Resilience Cube", "Vigor Cube", "Tempering Cube"] },
             bossing: "D",
             collection: { pvePriority: 2 },
             skill: {
@@ -3996,6 +4132,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Missilis",
         class: "Attacker",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Destruction Cube"] },
             bossing: "A",
             collection: { pvePriority: 6 },
             skill: {
@@ -4036,6 +4173,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Elysion",
         class: "Supporter",
         build: {
+            cube: { pve: ["Healing Cube", "Vigor Cube", "Tempering Cube", "Endurance Cube"] },
             bossing: "E",
             collection: { pvePriority: null },
             skill: { pve: { start: { s1: 1, s2: 1, s3: 1 }, min: null, rec: null, max: null }, priority: null },
@@ -4054,6 +4192,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Abnormal",
         class: "Defender",
         build: {
+            cube: { pve: ["Vigor Cube", "Tempering Cube", "Endurance Cube", "Adjutant Cube"] },
             bossing: "E",
             collection: { pvePriority: null },
             skill: { pve: { start: null, min: null, rec: null, max: null }, priority: null },
@@ -4072,6 +4211,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Elysion",
         class: "Attacker",
         build: {
+            cube: { pve: ["Bastion Cube", "Resilience Cube", "Assault Cube"] },
             bossing: "F",
             collection: { pvePriority: 1 },
             skill: {
@@ -4094,6 +4234,7 @@ const NIKKE_DATABASE = [
         overspec: true,
         class: "Attacker",
         build: {
+            cube: { pve: ["Bastion Cube", "Resilience Cube", "Destruction Cube"] },
             bossing: "SSS",
             collection: { pvePriority: 10 },
             skill: {
@@ -4128,6 +4269,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Pilgrim",
         class: "Supporter",
         build: {
+            cube: { pve: ["Healing Cube", "Vigor Cube", "Bastion Cube", "Resilience Cube"] },
             bossing: "B",
             collection: { pvePriority: 3 },
             skill: {
@@ -4149,6 +4291,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Pilgrim",
         class: "Defender",
         build: {
+            cube: { pve: ["Vigor Cube", "Tempering Cube", "Endurance Cube", "Adjutant Cube"] },
             bossing: "D",
             collection: { pvePriority: 1 },
             skill: {
@@ -4170,6 +4313,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Abnormal",
         class: "Attacker",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Destruction Cube", "Adjutant Cube"] },
             bossing: "SS",
             collection: { pvePriority: 9 },
             skill: {
@@ -4207,6 +4351,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Pilgrim",
         class: "Attacker",
         build: {
+            cube: { pve: ["Resilience Cube", "Destruction Cube", "Bastion Cube", "Adjutant Cube"] },
             bossing: "A",
             collection: { pvePriority: 9 },
             skill: {
@@ -4242,6 +4387,7 @@ const NIKKE_DATABASE = [
         seasonal: true,
         class: "Defender",
         build: {
+            cube: { pve: ["Vigor Cube", "Tempering Cube", "Endurance Cube"] },
             bossing: "F",
             collection: { pvePriority: null },
             skill: { pve: { start: null, min: null, rec: null, max: null }, priority: null },
@@ -4260,6 +4406,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Abnormal",
         class: "Attacker",
         build: {
+            cube: { pve: ["Bastion Cube", "Resilience Cube", "Destruction Cube"] },
             bossing: "A",
             collection: { pvePriority: 6 },
             skill: {
@@ -4294,6 +4441,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Abnormal",
         class: "Attacker",
         build: {
+            cube: { pve: ["Bastion Cube", "Resilience Cube", "Destruction Cube"] },
             bossing: "A",
             collection: { pvePriority: 6 },
             skill: {
@@ -4331,6 +4479,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Abnormal",
         class: "Supporter",
         build: {
+            cube: { pve: ["Bastion Cube", "Resilience Cube", "Healing Cube"] },
             bossing: "B",
             collection: { pvePriority: 3 },
             skill: {
@@ -4365,6 +4514,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Attacker",
         build: {
+            cube: { pve: ["Bastion Cube", "Resilience Cube", "Wingman Cube"] },
             bossing: "F",
             collection: { pvePriority: null },
             skill: { pve: { start: { s1: 1, s2: 1, s3: 1 }, min: null, rec: null, max: null }, priority: null },
@@ -4384,6 +4534,7 @@ const NIKKE_DATABASE = [
         seasonal: true,
         class: "Supporter",
         build: {
+            cube: { pve: ["Bastion Cube", "Resilience Cube", "Destruction Cube"] },
             bossing: "S",
             collection: { pvePriority: 5 },
             skill: {
@@ -4410,6 +4561,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Supporter",
         build: {
+            cube: { pve: ["Resilience Cube", "Wingman Cube", "Bastion Cube", "Destruction Cube"] },
             bossing: "S",
             collection: { pvePriority: 8 },
             skill: {
@@ -4443,6 +4595,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Defender",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Wingman Cube"] },
             bossing: "D",
             collection: { pvePriority: 1 },
             skill: {
@@ -4464,6 +4617,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Attacker",
         build: {
+            cube: { pve: ["Bastion Cube", "Resilience Cube", "Wingman Cube", "Destruction Cube"] },
             bossing: "D",
             collection: { pvePriority: 1 },
             skill: {
@@ -4495,6 +4649,7 @@ const NIKKE_DATABASE = [
         seasonal: true,
         class: "Defender",
         build: {
+            cube: { pve: ["Resilience Cube", "Vigor Cube"] },
             bossing: "E",
             collection: { pvePriority: 1 },
             skill: { pve: { start: null, min: null, rec: null, max: null }, priority: null },
@@ -4513,6 +4668,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Supporter",
         build: {
+            cube: { pve: ["Resilience Cube"] },
             bossing: "B",
             collection: { pvePriority: 4 },
             skill: {
@@ -4539,6 +4695,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Abnormal",
         class: "Supporter",
         build: {
+            cube: { pve: ["Vigor Cube", "Healing Cube"] },
             bossing: "D",
             collection: { pvePriority: null },
             skill: {
@@ -4561,6 +4718,7 @@ const NIKKE_DATABASE = [
         seasonal: true,
         class: "Attacker",
         build: {
+            cube: { pve: ["Bastion Cube", "Resilience Cube", "Destruction Cube"] },
             bossing: "B",
             collection: { pvePriority: 5 },
             skill: {
@@ -4594,6 +4752,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Pilgrim",
         class: "Attacker",
         build: {
+            cube: { pve: ["Bastion Cube", "Resilience Cube", "Destruction Cube"] },
             bossing: "A",
             collection: { pvePriority: 6 },
             skill: {
@@ -4632,6 +4791,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Pilgrim",
         class: "Attacker",
         build: {
+            cube: { pve: ["Bastion Cube", "Resilience Cube", "Destruction Cube", "Adjutant Cube"] },
             bossing: "SS",
             collection: { pvePriority: 10 },
             skill: {
@@ -4667,6 +4827,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Elysion",
         class: "Attacker",
         build: {
+            cube: { pve: ["Bastion Cube", "Resilience Cube"] },
             bossing: "F",
             collection: { pvePriority: null },
             skill: { pve: { start: null, min: null, rec: null, max: null }, priority: null },
@@ -4685,6 +4846,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Missilis",
         class: "Defender",
         build: {
+            cube: { pve: ["Resilience Cube", "Vigor Cube"] },
             bossing: "E",
             collection: { pvePriority: null },
             skill: {
@@ -4706,6 +4868,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Missilis",
         class: "Defender",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Vigor Cube", "Healing Cube"] },
             bossing: "D",
             collection: { pvePriority: 1 },
             skill: {
@@ -4727,6 +4890,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Pilgrim",
         class: "Attacker",
         build: {
+            cube: { pve: ["Destruction Cube", "Resilience Cube", "Bastion Cube", "Adjutant Cube"] },
             bossing: "S",
             collection: { pvePriority: 6 },
             skill: {
@@ -4761,6 +4925,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Pilgrim",
         class: "Attacker",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Piercing Cube", "Destruction Cube"] },
             bossing: "SSS",
             collection: { pvePriority: 10 },
             skill: {
@@ -4800,6 +4965,7 @@ const NIKKE_DATABASE = [
         seasonal: true,
         class: "Attacker",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Destruction Cube"] },
             bossing: "C",
             collection: { pvePriority: 3 },
             skill: {
@@ -4828,6 +4994,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Supporter",
         build: {
+            cube: { pve: ["Healing Cube", "Bastion Cube", "Resilience Cube", "Vigor Cube"] },
             bossing: "E",
             collection: { pvePriority: 1 },
             skill: { pve: { start: { s1: 1, s2: 1, s3: 1 }, min: null, rec: null, max: null }, priority: null },
@@ -4846,6 +5013,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Attacker",
         build: {
+            cube: { pve: ["Bastion Cube", "Resilience Cube", "Destruction Cube"] },
             bossing: "A",
             collection: { pvePriority: 6 },
             skill: {
@@ -4884,6 +5052,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Elysion",
         class: "Attacker",
         build: {
+            cube: { pve: ["Resilience Cube"] },
             bossing: "F",
             collection: { pvePriority: null },
             skill: { pve: { start: null, min: null, rec: null, max: null }, priority: null },
@@ -4902,6 +5071,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Elysion",
         class: "Defender",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Wingman Cube", "Assault Cube"] },
             bossing: "F",
             collection: { pvePriority: null },
             skill: { pve: { start: null, min: null, rec: null, max: null }, priority: null },
@@ -4920,6 +5090,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Elysion",
         class: "Supporter",
         build: {
+            cube: { pve: ["Resilience Cube"] },
             bossing: "F",
             collection: { pvePriority: null },
             skill: { pve: { start: null, min: null, rec: null, max: null }, priority: null },
@@ -4938,6 +5109,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Elysion",
         class: "Attacker",
         build: {
+            cube: { pve: ["Bastion Cube", "Resilience Cube", "Destruction Cube", "Wingman Cube"] },
             bossing: "C",
             collection: { pvePriority: 1 },
             skill: { pve: { start: null, min: null, rec: null, max: null }, priority: null },
@@ -4963,6 +5135,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Elysion",
         class: "Supporter",
         build: {
+            cube: { pve: ["Bastion Cube", "Resilience Cube", "Destruction Cube", "Vigor Cube"] },
             bossing: "A",
             collection: { pvePriority: 5 },
             skill: {
@@ -5001,6 +5174,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Elysion",
         class: "Supporter",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Healing Cube", "Vigor Cube"] },
             bossing: "D",
             collection: { pvePriority: 1 },
             skill: {
@@ -5027,6 +5201,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Attacker",
         build: {
+            cube: { pve: ["Bastion Cube", "Resilience Cube", "Wingman Cube", "Destruction Cube"] },
             bossing: "C",
             collection: { pvePriority: 3 },
             skill: {
@@ -5056,6 +5231,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Abnormal",
         class: "Supporter",
         build: {
+            cube: { pve: ["Rupture Cube", "Destruction Cube", "Bastion Cube", "Wingman Cube"] },
             bossing: "A",
             collection: { pvePriority: 8 },
             skill: {
@@ -5094,6 +5270,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Missilis",
         class: "Defender",
         build: {
+            cube: { pve: ["Vigor Cube", "Resilience Cube", "Bastion Cube"] },
             bossing: "A",
             collection: { pvePriority: 5 },
             skill: {
@@ -5121,6 +5298,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Missilis",
         class: "Supporter",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Destruction Cube"] },
             bossing: "S",
             collection: { pvePriority: 9 },
             skill: {
@@ -5155,6 +5333,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Missilis",
         class: "Supporter",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Vigor Cube"] },
             bossing: "A",
             collection: { pvePriority: 4 },
             skill: {
@@ -5191,6 +5370,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Missilis",
         class: "Attacker",
         build: {
+            cube: { pve: ["Bastion Cube", "Resilience Cube", "Destruction Cube"] },
             bossing: "D",
             collection: { pvePriority: 2 },
             skill: {
@@ -5225,6 +5405,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Supporter",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Adjutant Cube", "Destruction Cube"] },
             bossing: "S",
             collection: { pvePriority: 6 },
             skill: {
@@ -5263,6 +5444,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Elysion",
         class: "Attacker",
         build: {
+            cube: { pve: ["Bastion Cube", "Resilience Cube", "Adjutant Cube", "Destruction Cube"] },
             bossing: "E",
             collection: { pvePriority: 1 },
             skill: {
@@ -5291,6 +5473,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Elysion",
         class: "Attacker",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Wingman Cube"] },
             bossing: "B",
             collection: { pvePriority: 8 },
             skill: {
@@ -5331,6 +5514,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Attacker",
         build: {
+            cube: { pve: ["Bastion Cube", "Resilience Cube", "Destruction Cube"] },
             bossing: "B",
             collection: { pvePriority: 5 },
             skill: {
@@ -5365,6 +5549,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Attacker",
         build: {
+            cube: { pve: ["Vigor Cube", "Tempering Cube", "Resilience Cube", "Bastion Cube"] },
             bossing: "A",
             collection: { pvePriority: null },
             skill: {
@@ -5391,6 +5576,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Supporter",
         build: {
+            cube: { pve: ["Vigor Cube", "Tempering Cube", "Endurance Cube", "Adjutant Cube"] },
             bossing: "E",
             collection: { pvePriority: null },
             skill: { pve: { start: null, min: null, rec: null, max: null }, priority: null },
@@ -5409,6 +5595,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Attacker",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube", "Adjutant Cube", "Wingman Cube"] },
             bossing: "B",
             collection: { pvePriority: 1 },
             skill: {
@@ -5435,6 +5622,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Missilis",
         class: "Defender",
         build: {
+            cube: { pve: ["Healing Cube", "Vigor Cube", "Tempering Cube", "Endurance Cube"] },
             bossing: "F",
             collection: { pvePriority: null },
             skill: { pve: { start: null, min: null, rec: null, max: null }, priority: null },
@@ -5454,6 +5642,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Elysion",
         class: "Supporter",
         build: {
+            cube: { pve: ["Resilience Cube", "Destruction Cube", "Piercing Cube"] },
             bossing: "S",
             collection: { pvePriority: 5 },
             skill: {
@@ -5491,6 +5680,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Defender",
         build: {
+            cube: { pve: ["Resilience Cube"] },
             bossing: "F",
             collection: { pvePriority: null },
             skill: { pve: { start: null, min: null, rec: null, max: null }, priority: null },
@@ -5509,6 +5699,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Supporter",
         build: {
+            cube: { pve: ["Resilience Cube"] },
             bossing: "F",
             collection: { pvePriority: null },
             skill: { pve: { start: null, min: null, rec: null, max: null }, priority: null },
@@ -5527,6 +5718,7 @@ const NIKKE_DATABASE = [
         manufacturer: "Tetra",
         class: "Supporter",
         build: {
+            cube: { pve: ["Resilience Cube", "Bastion Cube"] },
             bossing: "F",
             collection: { pvePriority: null },
             skill: { pve: { start: null, min: null, rec: null, max: null }, priority: null },
@@ -5553,9 +5745,9 @@ const ALL_LINES = [
 // Stats that are always trash ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â never worth keeping
 const ALWAYS_TRASH = new Set(["DEF"]);
 
-function elemIcon(element) {
+function elemIcon(element, size = 20) {
     if (!element) return "";
-    return `<img src="assets/elements/${element.toLowerCase()}.webp" alt="${element}" style="width:20px;height:20px;vertical-align:middle;border-radius:3px;object-fit:contain">`;
+    return `<img src="assets/elements/${element.toLowerCase()}.webp" alt="${element}" style="width:${size}px;height:${size}px;vertical-align:middle;border-radius:3px;object-fit:contain">`;
 }
 
 function weaponIcon(weapon) {

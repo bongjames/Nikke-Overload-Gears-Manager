@@ -221,13 +221,13 @@ async function handleAuth() {
     }
 }
 
-// Returns display string for a nikke's burst(s): "All", "B3", "B2", or "B1"
+// Returns display string for a nikke's burst(s): "All", "III", "II", or "I"
 function burstDisplay(n) {
     const count = (n.burst1 ? 1 : 0) + (n.burst2 ? 1 : 0) + (n.burst3 ? 1 : 0);
     if (count >= 3) return "All";
-    if (n.burst3) return "B3";
-    if (n.burst2) return "B2";
-    if (n.burst1) return "B1";
+    if (n.burst3) return "III";
+    if (n.burst2) return "II";
+    if (n.burst1) return "I";
     return "";
 }
 
