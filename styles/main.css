@@ -1850,6 +1850,11 @@ details[open] > .verdict-title {
         padding: 1rem 0.5rem;
     }
 
+    /* Prevent iOS Safari from zooming on input/select focus (triggers at < 16px) */
+    input, select, textarea {
+        font-size: 16px !important;
+    }
+
     /* Topbar: stack title left, actions below */
     .topbar {
         flex-wrap: wrap;
@@ -2472,9 +2477,9 @@ details[open] > .verdict-title {
     font-size: 12.5px;
     font-weight: 500;
     color: #e7ecf3;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    line-height: 1.2;
+    overflow-wrap: break-word;
+    word-break: break-word;
 }
 .team-slot-dmg-row {
     display: flex;
@@ -2542,7 +2547,7 @@ details[open] > .verdict-title {
     border: 1px solid #2d3f5e;
     border-radius: 12px;
     padding: 16px;
-    width: 340px;
+    width: min(340px, calc(100vw - 32px));
     max-height: 70vh;
     display: flex;
     flex-direction: column;
@@ -2740,4 +2745,55 @@ details[open] > .verdict-title {
     padding: 2px 8px;
     margin-left: 6px;
     vertical-align: middle;
+}
+
+/* ── Teams tab: mobile reflow ──
+   Lanes already stack vertically; the per-lane 5-slot grid is the only thing
+   that won't fit a phone, so the work here is narrowing slots and keeping the
+   readiness tabs / gap list / picker modal from overflowing. */
+@media (max-width: 768px) {
+    /* 5 slots per team is too tight on a tablet/large phone — drop to 3 across. */
+    .team-slots {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    /* Readiness category tabs (Gear/Skills/Dolls/Bond): scroll sideways rather
+       than overflow the lane on narrow widths. */
+    .team-gap-chips {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        gap: 0;
+    }
+    .team-gap-chip {
+        padding: 6px 11px;
+        font-size: 13px;
+        flex-shrink: 0;
+    }
+
+    /* A gap detail can be long ("3 slots · Head, Body, Arm") — let the name
+       shrink/wrap instead of pushing the row wider than the lane. */
+    .team-gap-item {
+        flex-wrap: wrap;
+    }
+    .team-gap-item-name {
+        min-width: 0;
+    }
+}
+
+@media (max-width: 480px) {
+    /* Phones: two slots across, with tighter padding so the Nikke name and
+       damage field stay legible. */
+    .team-slots {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 5px;
+    }
+    .team-slot {
+        padding: 6px;
+        gap: 6px;
+    }
+    .team-slot-empty .team-slot-add-btn {
+        width: 28px;
+        height: 28px;
+        font-size: 22px;
+    }
 }

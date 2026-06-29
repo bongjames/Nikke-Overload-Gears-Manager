@@ -332,12 +332,16 @@ function renderTeamSlot(raid, teamNum, slotIdx, entry, maxEntry) {
     const n = state.nikkes.find((x) => x.id === entry.nikkeId);
     const name = n ? n.name : "(removed)";
     const elem = n && n.element ? elemIcon(n.element) : "";
+    const bd = n ? burstDisplay(n) : "";
+    const burstNum = bd === "All" ? "All" : bd === "III" ? 3 : bd === "II" ? 2 : bd === "I" ? 1 : null;
+    const burst = burstNum ? burstIcon(burstNum) : "";
     const pct = maxEntry > 0 ? ((entry.damage || 0) / maxEntry) * 100 : 0;
     const dmgColor = !entry.damage ? "#5d6779" : pct >= 80 ? "#4ade80" : pct >= 50 ? "#60a5fa" : pct >= 25 ? "#fbbf24" : "#f87171";
     return `<div class="team-slot team-slot-filled">
       ${n ? nikkeIcon(name, 34) : ""}
       <div class="team-slot-info">
-        <span class="team-slot-name">${elem} ${name}</span>
+        <span class="team-slot-name">${name}</span>
+        ${(elem || burst) ? `<div style="display:flex;align-items:center;gap:2px;margin-top:1px">${elem}${burst}</div>` : ""}
         <div class="team-slot-dmg-row">
           <input class="team-slot-dmg-input" type="text" inputmode="numeric" value="${entry.damage || ""}" placeholder="0" style="color:${dmgColor}"
                  onclick="event.stopPropagation()"
