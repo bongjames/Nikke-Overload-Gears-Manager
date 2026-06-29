@@ -93,8 +93,13 @@ async function uploadLocalToCloud() {
     }
 }
 
-// Auth state change handler
-auth.onAuthStateChanged(async (user) => {
+// Auth state change handler.
+// NOTE: this callback calls render(), which is defined in app.js — a script that
+// loads *after* this file. Firebase can restore a persisted session and fire this
+// before app.js has executed, which throws "render is not defined". So we define
+// the handler here but defer registering it until DOMContentLoaded (see below),
+// by which point every script — including app.js's initial load()/render() — has run.
+async function onAuthChanged(user) {
     currentUser = user;
     updateAuthUI();
     if (user) {
@@ -186,7 +191,15 @@ auth.onAuthStateChanged(async (user) => {
         render();
         setSyncStatus("offline", "");
     }
-});
+}
+
+// Defer registration until the DOM is ready so app.js (which defines render) has
+// loaded. Handle the already-loaded case too, in case this ever runs after DOMContentLoaded.
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => auth.onAuthStateChanged(onAuthChanged));
+} else {
+    auth.onAuthStateChanged(onAuthChanged);
+}
 
 function updateAuthUI() {
     const btn = document.getElementById("auth-btn");

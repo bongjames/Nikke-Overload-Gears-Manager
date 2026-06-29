@@ -1845,14 +1845,22 @@ details[open] > .verdict-title {
    MOBILE / RESPONSIVE
    ══════════════════════════════════════════════════════════════ */
 
+/* iOS Safari auto-zooms the whole page whenever a focused text field has a
+   font-size below 16px. This is a *touch-device* behaviour, not a screen-width
+   one, so gating it on a width breakpoint alone misses iPads (wider than 768px)
+   and iPhones in landscape (~932px). Match touch devices via pointer:coarse,
+   with a max-width fallback so narrow screens are always covered too. */
+@media (pointer: coarse), (max-width: 768px) {
+    input,
+    select,
+    textarea {
+        font-size: 16px !important;
+    }
+}
+
 @media (max-width: 768px) {
     .app {
         padding: 1rem 0.5rem;
-    }
-
-    /* Prevent iOS Safari from zooming on input/select focus (triggers at < 16px) */
-    input, select, textarea {
-        font-size: 16px !important;
     }
 
     /* Topbar: stack title left, actions below */

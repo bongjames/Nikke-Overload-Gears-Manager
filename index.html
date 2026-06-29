@@ -64,7 +64,9 @@
   Data persists across page reloads in the same browser.
 ============================================================ -->
 
-        <link rel="stylesheet" href="styles/main.css" />
+        <!-- ?v= cache-buster: bump this (and VERSION) whenever main.css changes so iOS
+             Safari fetches the new stylesheet instead of an aggressively cached copy. -->
+        <link rel="stylesheet" href="styles/main.css?v=1.0.1" />
     </head>
     <body>
         <div class="app">
