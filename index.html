@@ -64,9 +64,10 @@
   Data persists across page reloads in the same browser.
 ============================================================ -->
 
-        <!-- ?v= cache-buster: bump this (and VERSION) whenever main.css changes so iOS
-             Safari fetches the new stylesheet instead of an aggressively cached copy. -->
-        <link rel="stylesheet" href="styles/main.css?v=1.0.1" />
+        <!-- ?v= is an auto-managed cache-buster: the pre-commit hook stamps it with the
+             commit hash (via scripts/stamp-version.ps1) so browsers — iOS Safari in
+             particular — refetch changed CSS/JS instead of serving an old cached copy. -->
+        <link rel="stylesheet" href="styles/main.css?v=b4c3c9e" />
     </head>
     <body>
         <div class="app">
@@ -278,26 +279,26 @@
         <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
         <!-- Knowledge Engine (shared across tools) -->
-        <script src="knowledge/nikke-database.js"></script>
-        <script src="knowledge/weights.js"></script>
-        <script src="knowledge/overload-math.js"></script>
-        <script src="knowledge/build-info.js"></script>
+        <script src="knowledge/nikke-database.js?v=b4c3c9e"></script>
+        <script src="knowledge/weights.js?v=b4c3c9e"></script>
+        <script src="knowledge/overload-math.js?v=b4c3c9e"></script>
+        <script src="knowledge/build-info.js?v=b4c3c9e"></script>
 
         <!-- App scripts (load order matters: state → helpers → firebase → renderers → init) -->
-        <script src="js/state.js"></script>
-        <script src="js/helpers.js"></script>
-        <script src="js/firebase.js"></script>
-        <script src="js/ui-actions.js"></script>
-        <script src="js/render-overview.js"></script>
-        <script src="js/render-roster.js"></script>
-        <script src="js/damage-calc.js"></script>
-        <script src="js/render-nikkes.js"></script>
-        <script src="js/render-priority.js"></script>
-        <script src="js/render-raids.js"></script>
-        <script src="js/render-teams.js"></script>
-        <script src="js/render-weights.js"></script>
-        <script src="js/render-cubes.js"></script>
-        <script src="js/render-wishlist.js"></script>
-        <script src="js/app.js"></script>
+        <script src="js/state.js?v=b4c3c9e"></script>
+        <script src="js/helpers.js?v=b4c3c9e"></script>
+        <script src="js/firebase.js?v=b4c3c9e"></script>
+        <script src="js/ui-actions.js?v=b4c3c9e"></script>
+        <script src="js/render-overview.js?v=b4c3c9e"></script>
+        <script src="js/render-roster.js?v=b4c3c9e"></script>
+        <script src="js/damage-calc.js?v=b4c3c9e"></script>
+        <script src="js/render-nikkes.js?v=b4c3c9e"></script>
+        <script src="js/render-priority.js?v=b4c3c9e"></script>
+        <script src="js/render-raids.js?v=b4c3c9e"></script>
+        <script src="js/render-teams.js?v=b4c3c9e"></script>
+        <script src="js/render-weights.js?v=b4c3c9e"></script>
+        <script src="js/render-cubes.js?v=b4c3c9e"></script>
+        <script src="js/render-wishlist.js?v=b4c3c9e"></script>
+        <script src="js/app.js?v=b4c3c9e"></script>
     </body>
 </html>

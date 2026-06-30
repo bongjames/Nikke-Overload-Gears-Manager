@@ -109,7 +109,7 @@ function renderWishlist() {
 
     el.innerHTML = `
         <div style="max-width:960px">
-            <div class="section-label">Wishlist Recommendations</div>
+            <div class="team-raid-title" style="padding-left:9px;margin-bottom:12px">Wishlist Recommendations</div>
             <div style="display:flex;flex-wrap:wrap;gap:1.5rem">
                 ${cardsHtml}
             </div>

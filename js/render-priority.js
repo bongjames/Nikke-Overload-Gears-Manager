@@ -44,8 +44,6 @@ function renderPrioContent(nikke) {
         <select class="tier-target-select" onchange="updatePrioTargetTier('${nikke.id}',${i},this.value)">${tTierOpts}</select>
         <button class="small-del-btn" onclick="delPrio('${nikke.id}',${i})" title="Remove">✕</button>
       </div>
-      ${tgtVal ? `<div class="prio-hint">T${targetTier}+ for ${p.line || "stat"}: ≥<strong>${tgtVal}%</strong> · ${(prob * 100).toFixed(0)}% chance per reset roll (~${expRolls} rolls expected)</div>` : ""}
-      ${p.line && p.line in MIN_VAL ? `<div class="prio-hint">Prydwen min per line: ${MIN_VAL[p.line]}% · Total min for ${count}×: ${(MIN_VAL[p.line] * count).toFixed(2)}%</div>` : ""}
     </div>`;
         })
         .join("");

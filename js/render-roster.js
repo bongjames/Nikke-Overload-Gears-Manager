@@ -7,12 +7,13 @@ function renderRoster() {
     const cards = [...state.nikkes]
         .sort((a, b) => a.name.localeCompare(b.name))
         .map((n) => {
-            const dots = SLOTS.map((s) => `<div class="dot ${dotStatus(n, s)}" title="${s}"></div>`).join(
-                "",
-            );
-            const editBtn = n.custom ? `<button class="edit-btn" onclick="showEditNikke('${n.id}')" title="Edit">✎</button>` : '';
+            const dots = SLOTS.map((s) => `<div class="dot ${dotStatus(n, s)}" title="${s}"></div>`).join("");
+            const editBtn = n.custom
+                ? `<button class="edit-btn" onclick="showEditNikke('${n.id}')" title="Edit">✎</button>`
+                : "";
             const burstVal = n.burst1 ? "I" : n.burst2 ? "II" : "III";
-            const editForm = n.custom ? `
+            const editForm = n.custom
+                ? `
       <div class="edit-inline" id="edit-inline-${n.id}">
         <div class="edit-row-name">
           <input id="edit-name-${n.id}" value="${n.name}" placeholder="Name"/>
@@ -24,17 +25,20 @@ function renderRoster() {
 <option value="III"${burstVal === "III" ? " selected" : ""}>Burst III</option>
           </select>
           <select id="edit-element-${n.id}">
-${NIKKE_ELEMENTS.map(e => `<option value="${e}"${n.element === e ? " selected" : ""}>${e}</option>`).join("")}
+${NIKKE_ELEMENTS.map((e) => `<option value="${e}"${n.element === e ? " selected" : ""}>${e}</option>`).join("")}
           </select>
           <select id="edit-weapon-${n.id}">
-${Object.entries(NIKKE_WEAPONS).map(([c, nm]) => `<option value="${c}"${n.weapon === c ? " selected" : ""}>${nm}</option>`).join("")}
+${Object.entries(NIKKE_WEAPONS)
+    .map(([c, nm]) => `<option value="${c}"${n.weapon === c ? " selected" : ""}>${nm}</option>`)
+    .join("")}
           </select>
         </div>
         <div class="edit-actions">
           <button class="edit-cancel-btn" onclick="hideEditNikke('${n.id}')">Cancel</button>
           <button class="edit-save-btn" onclick="saveEditNikke('${n.id}')">Save</button>
         </div>
-      </div>` : '';
+      </div>`
+                : "";
             return `<div class="nikke-card">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <div style="display:flex;align-items:center;gap:10px;min-width:0">
@@ -85,10 +89,10 @@ ${Object.entries(NIKKE_WEAPONS).map(([c, nm]) => `<option value="${c}"${n.weapon
           <div class="form-row"><label class="form-label">Burst</label><select class="form-input" id="nn-custom-burst"><option value="I">I</option><option value="II">II</option><option value="III" selected>III</option></select></div>
           <div class="form-row"><label class="form-label">Element</label><select class="form-input" id="nn-custom-element"><option value="Fire">Fire</option><option value="Water">Water</option><option value="Wind">Wind</option><option value="Electric">Electric</option><option value="Iron">Iron</option></select></div>
           <div class="form-row"><label class="form-label">Weapon</label><select class="form-input" id="nn-custom-weapon">${Object.entries(
-  NIKKE_WEAPONS,
+              NIKKE_WEAPONS,
           )
-  .map(([c, n]) => `<option value="${c}">${n}</option>`)
-  .join("")}</select></div>
+              .map(([c, n]) => `<option value="${c}">${n}</option>`)
+              .join("")}</select></div>
         </div>
         <div class="btn-row"><button class="btn btn-primary" onclick="addCustomNikke()">Add Custom</button></div>
       </div>
@@ -96,7 +100,12 @@ ${Object.entries(NIKKE_WEAPONS).map(([c, nm]) => `<option value="${c}"${n.weapon
 }
 
 function showAddForm() {
-    document.getElementById("add-form").classList.add("show");
+    const f = document.getElementById("add-form");
+    if (f.classList.contains("show")) {
+        f.classList.remove("show");
+        return;
+    }
+    f.classList.add("show");
     document.getElementById("nn-search").focus();
 }
 function hideAddForm() {
@@ -107,9 +116,7 @@ function filterNikkeList() {
     const q = document.getElementById("nn-search").value.toLowerCase();
     const sel = document.getElementById("nn-select");
     const addedNames = new Set(state.nikkes.map((n) => n.name));
-    const filtered = NIKKE_DATABASE.filter(
-        (n) => !addedNames.has(n.name) && n.name.toLowerCase().includes(q),
-    );
+    const filtered = NIKKE_DATABASE.filter((n) => !addedNames.has(n.name) && n.name.toLowerCase().includes(q));
     sel.innerHTML = filtered
         .map((n) => `<option value="${n.name}">${n.name} · ${n.element} · ${burstDisplay(n)}</option>`)
         .join("");

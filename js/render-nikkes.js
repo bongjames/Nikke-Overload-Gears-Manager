@@ -4,6 +4,18 @@
 
 let _gearSidebarCache = "";
 let _gearSidebarSearch = "";
+// Whether the Nikke list is collapsed. Only has a visual effect on mobile
+// (≤768px) — on desktop the list is always shown via CSS. Auto-collapses when a
+// Nikke is selected so the detail panel takes focus on small screens.
+let _nikkeListCollapsed = false;
+function toggleNikkeList() {
+    _nikkeListCollapsed = !_nikkeListCollapsed;
+    const sb = document.getElementById("gear-sidebar-inner");
+    if (!sb) return;
+    sb.classList.toggle("nikke-list-collapsed", _nikkeListCollapsed);
+    const tog = sb.querySelector(".roster-list-toggle");
+    if (tog) tog.setAttribute("aria-expanded", String(!_nikkeListCollapsed));
+}
 // Active sub-tab within a Nikke's detail panel: "gear" or "priorities"
 let _gearSubTab = "gear";
 
@@ -11,9 +23,29 @@ function filterGearSidebarList() {
     const input = document.getElementById("nikke-sidebar-search");
     if (!input) return;
     _gearSidebarSearch = input.value.toLowerCase();
-    document.querySelectorAll("#gear .nikke-list .nikke-item").forEach((el) => {
-        el.style.display = el.dataset.name.includes(_gearSidebarSearch) ? "flex" : "none";
+    const items = document.querySelectorAll("#gear .nikke-list .nikke-item");
+    let anyVisible = false;
+    items.forEach((el) => {
+        const visible = el.dataset.name.includes(_gearSidebarSearch);
+        el.style.display = visible ? "flex" : "none";
+        if (visible) anyVisible = true;
     });
+    const list = document.querySelector("#gear .nikke-list");
+    if (!list) return;
+    let emptyMsg = list.querySelector(".nikke-list-search-empty");
+    if (items.length > 0 && !anyVisible) {
+        if (!emptyMsg) {
+            emptyMsg = document.createElement("div");
+            emptyMsg.className = "nikke-list-search-empty";
+            emptyMsg.style.cssText = "font-size:14px;color:#475569;padding:6px";
+            emptyMsg.textContent = "No Nikkes matching filters";
+            list.appendChild(emptyMsg);
+        } else {
+            emptyMsg.style.display = "";
+        }
+    } else if (emptyMsg) {
+        emptyMsg.style.display = "none";
+    }
 }
 
 function sortNikkesBySidebar(nikkes) {
@@ -58,14 +90,13 @@ function renderGear() {
         filtered
             .map((n) => {
                 // One dot per gear slot, coloured by that slot's gear status (done/partial/warn/none)
-                const dots = SLOTS.map(
-                    (s) => `<span class="${dotStatus(n, s)}" title="${s}"></span>`,
-                ).join("");
+                const dots = SLOTS.map((s) => `<span class="${dotStatus(n, s)}" title="${s}"></span>`).join("");
                 return `<div class="nikke-item ${state.selGear === n.id ? "active" : ""}" data-name="${n.name.toLowerCase()}" onclick="selGearNikke('${n.id}')" style="display:flex;align-items:center;gap:8px">
       ${nikkeIcon(n.name, 34)}<div style="min-width:0"><div>${n.name}</div><div class="nikke-item-sub" style="display:flex;align-items:center;gap:6px"><span class="gear-dots-mini">${dots}</span>${elemIcon(n.element, 14)}</div></div>
     </div>`;
             })
-            .join("") || '<div style="font-size:14px;color:#475569;padding:6px">No Nikkes match filter</div>';
+            .join("") ||
+        `<div style="font-size:14px;color:#475569;padding:6px">${state.gearElementFilter || state.gearBurstFilter || state.gearManufacturerFilter || state.gearWeaponFilter ? "No Nikkes matching filters" : "No Nikkes added"}</div>`;
 
     // Build filter options from fixed game constants
     const elemOpts = NIKKE_ELEMENTS.map(
@@ -154,14 +185,21 @@ function renderGear() {
         </div>
       </div>`;
 
+        const toggleBtn = `<button type="button" class="roster-list-toggle" onclick="toggleNikkeList()" aria-expanded="${!_nikkeListCollapsed}">
+          <span class="roster-list-chevron">›</span>
+          <span>Nikkes</span>
+          <span class="roster-list-count">${filtered.length}</span>
+        </button>`;
+        const collapsibleHtml = `<div class="nikke-list-collapsible">${filterHtml}${addHtml}<div class="nikke-list">${list}</div></div>`;
         const sidebarEl = document.getElementById("gear-sidebar-inner");
         if (!sidebarEl) {
             el.innerHTML = `<div class="two-col">
-      <div class="nikke-sidebar" id="gear-sidebar-inner">${filterHtml}${addHtml}<div class="nikke-list">${list}</div></div>
+      <div class="nikke-sidebar${_nikkeListCollapsed ? " nikke-list-collapsed" : ""}" id="gear-sidebar-inner">${toggleBtn}${collapsibleHtml}</div>
       <div id="gear-main">${state.selGear ? "" : '<div class="empty-state">← Select a Nikke</div>'}</div>
     </div>`;
         } else {
-            sidebarEl.innerHTML = filterHtml + addHtml + `<div class="nikke-list">${list}</div>`;
+            sidebarEl.innerHTML = toggleBtn + collapsibleHtml;
+            sidebarEl.classList.toggle("nikke-list-collapsed", _nikkeListCollapsed);
         }
         if (_gearSidebarSearch) filterGearSidebarList();
     }
@@ -192,7 +230,12 @@ function toggleGearSidebarSortDir() {
 }
 
 function showGearAddForm() {
-    document.getElementById("gear-add-form").classList.add("show");
+    const f = document.getElementById("gear-add-form");
+    if (f.classList.contains("show")) {
+        f.classList.remove("show");
+        return;
+    }
+    f.classList.add("show");
     document.getElementById("gear-nn-search").focus();
 }
 function hideGearAddForm() {
@@ -218,7 +261,9 @@ function addNikkeFromGear() {
     const nikke = mkNikke(entry.name, entry.burst1, entry.burst2, entry.burst3, entry.element);
     state.nikkes.push(nikke);
     state.selGear = nikke.id;
-    try { localStorage.setItem("nikke_selGear", nikke.id); } catch(e) {}
+    try {
+        localStorage.setItem("nikke_selGear", nikke.id);
+    } catch (e) {}
     save();
     render();
 }
@@ -234,7 +279,9 @@ function addCustomNikkeFromGear() {
     nikke.custom = true;
     state.nikkes.push(nikke);
     state.selGear = nikke.id;
-    try { localStorage.setItem("nikke_selGear", nikke.id); } catch(e) {}
+    try {
+        localStorage.setItem("nikke_selGear", nikke.id);
+    } catch (e) {}
     if (!state.customWeapons) state.customWeapons = {};
     state.customWeapons[name] = weapon;
     save();
@@ -262,7 +309,16 @@ function setGearWeaponFilter(val) {
 function selGearNikke(id) {
     if (state.selGear === id) return;
     state.selGear = id;
-    try { localStorage.setItem("nikke_selGear", id); } catch(e) {}
+    _nikkeListCollapsed = true; // mobile: hide the list so the picked Nikke's detail shows
+    try {
+        localStorage.setItem("nikke_selGear", id);
+    } catch (e) {}
+    const sb = document.getElementById("gear-sidebar-inner");
+    if (sb) {
+        sb.classList.add("nikke-list-collapsed");
+        const tog = sb.querySelector(".roster-list-toggle");
+        if (tog) tog.setAttribute("aria-expanded", "false");
+    }
     // Just update active class without re-rendering sidebar
     document.querySelectorAll("#gear .nikke-list .nikke-item").forEach((el) => {
         const isActive = el.getAttribute("onclick")?.includes(id);
@@ -300,9 +356,7 @@ function renderGearMain(nikke) {
         const c = classifyLine(s, nikke);
         return c === "ideal" ? 0 : c === "passable" ? 1 : 2;
     };
-    const sortedStats = trackedStats
-        .slice()
-        .sort((a, b) => attrRole(a) - attrRole(b) || a.localeCompare(b));
+    const sortedStats = trackedStats.slice().sort((a, b) => attrRole(a) - attrRole(b) || a.localeCompare(b));
 
     const attrRows = sortedStats
         .map((stat) => {
@@ -397,7 +451,7 @@ function renderGearMain(nikke) {
                     (l) => `<option value="${l}" ${line.stat === l ? "selected" : ""}>${l}</option>`,
                 ).join("");
                 const unit = line.stat && IS_PCT.has(line.stat) ? "%" : "";
-                const normalVal = line.val ? parseFloat(String(line.val).replace('%', '')).toFixed(2) : "";
+                const normalVal = line.val ? parseFloat(String(line.val).replace("%", "")).toFixed(2) : "";
                 const tierOpts =
                     line.stat && TIER_TABLE[line.stat]
                         ? TIER_TABLE[line.stat]
@@ -462,8 +516,7 @@ ${tierOpts}
         </details>`;
             } else {
                 const gainText = v.gain ? ` · ${v.gain}` : "";
-                const summary =
-                    v.rocks > 0 ? `${v.label} — ~${v.rocks} rocks${gainText}` : `${v.label}`;
+                const summary = v.rocks > 0 ? `${v.label} — ~${v.rocks} rocks${gainText}` : `${v.label}`;
                 verdictHtml = `<details class="verdict ${v.cls}">
           <summary class="verdict-title">${summary}</summary>
           <div class="verdict-steps">${(v.steps || []).map((s, i) => `<div class="verdict-step"><span class="step-num">${i + 1}.</span><span>${s}</span></div>`).join("")}</div>
@@ -517,7 +570,7 @@ ${tierOpts}
         .concat(hasUntracked ? [`<option value="__add_cube__" style="color:#60a5fa">+ Add another cube</option>`] : [])
         .join("");
     // Colour the selected cube green if it's a recommended PVE cube for this Nikke, yellow if not.
-    const selCubeName = nikke.cube ? HARMONY_CUBES[nikke.cube.tid] ?? nikke.cube.name : null;
+    const selCubeName = nikke.cube ? (HARMONY_CUBES[nikke.cube.tid] ?? nikke.cube.name) : null;
     const cubeColor = selCubeName ? (recCubes.includes(selCubeName) ? "#4ade80" : "#fcd34d") : null;
     const equippedDollDb = nikke.doll ? COLLECTION_DOLLS.find((d) => d.id === nikke.doll.tid) : null;
     const isTreasureDoll = equippedDollDb != null && equippedDollDb.treasure != null;
@@ -849,21 +902,20 @@ function toggleLock(nid, slot, i) {
     renderGearMain(n);
 }
 
-
 // ============================================================
 //  DAMAGE CALCULATOR PANEL — per-Nikke gear impact display
 // ============================================================
 
 function renderDamageCalcPanel(nikke, totals) {
     const db = NIKKE_DB_MAP.get(nikke.name) || {};
-    const weapon = nikke.weapon || db.weapon || 'AR';
-    const isChargeWeapon = weapon === 'SR' || weapon === 'RL';
+    const weapon = nikke.weapon || db.weapon || "AR";
+    const isChargeWeapon = weapon === "SR" || weapon === "RL";
     const hasElement = state.elementalBoss;
 
     // Gather all gear lines across all 4 slots
     const allGearLines = [];
-    SLOTS.forEach(slot => {
-        nikke.gear[slot].lines.forEach(l => {
+    SLOTS.forEach((slot) => {
+        nikke.gear[slot].lines.forEach((l) => {
             if (l.stat && l.val) {
                 allGearLines.push({ stat: l.stat, val: parseFloat(l.val) || 0, slot });
             }
@@ -891,7 +943,7 @@ function renderDamageCalcPanel(nikke, totals) {
         baseATK: 25000,
         enemyDEF: 5000,
         baseCritRate: 0.15,
-        baseCritDmg: 0.50,
+        baseCritDmg: 0.5,
         coreHit: true,
         fullBurst: true,
     };
@@ -899,13 +951,16 @@ function renderDamageCalcPanel(nikke, totals) {
     const result = DamageCalc.analyzeGearImpact(allGearLines, context);
 
     // Build per-line rows sorted by contribution (highest first)
-    const sorted = [...result.perLine].filter(p => p.contribution > 0).sort((a, b) => b.contribution - a.contribution);
+    const sorted = [...result.perLine]
+        .filter((p) => p.contribution > 0)
+        .sort((a, b) => b.contribution - a.contribution);
 
-    const lineRows = sorted.map(p => {
-        const pct = p.contribution.toFixed(2);
-        const barWidth = Math.min(100, (p.contribution / (result.totalBoostPercent || 1)) * 100);
-        const statColor = getStatColor(p.line.stat);
-        return `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px">
+    const lineRows = sorted
+        .map((p) => {
+            const pct = p.contribution.toFixed(2);
+            const barWidth = Math.min(100, (p.contribution / (result.totalBoostPercent || 1)) * 100);
+            const statColor = getStatColor(p.line.stat);
+            return `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px">
             <span style="width:120px;color:${statColor};font-weight:500;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.line.stat}</span>
             <span style="width:50px;color:#94a3b8;flex-shrink:0;text-align:right">${p.line.val}%</span>
             <div style="flex:1;height:6px;background:#1a2235;border-radius:3px;overflow:hidden">
@@ -913,16 +968,17 @@ function renderDamageCalcPanel(nikke, totals) {
             </div>
             <span style="width:60px;text-align:right;color:#64ffda;font-weight:600;flex-shrink:0">+${pct}%</span>
         </div>`;
-    }).join('');
+        })
+        .join("");
 
     // Non-damage lines (Max Ammo, Charge Speed, Hit Rate, DEF)
-    const nonDmgLines = allGearLines.filter(l => {
+    const nonDmgLines = allGearLines.filter((l) => {
         const s = l.stat;
-        return s === 'Max Ammo' || s === 'Charge Speed' || s === 'Hit Rate' || s === 'DEF';
+        return s === "Max Ammo" || s === "Charge Speed" || s === "Hit Rate" || s === "DEF";
     });
     const nonDmgNote = nonDmgLines.length
-        ? `<div style="font-size:11px;color:#475569;margin-top:6px">${nonDmgLines.length} line(s) not shown (${[...new Set(nonDmgLines.map(l => l.stat))].join(', ')}) — no direct per-hit damage effect.</div>`
-        : '';
+        ? `<div style="font-size:11px;color:#475569;margin-top:6px">${nonDmgLines.length} line(s) not shown (${[...new Set(nonDmgLines.map((l) => l.stat))].join(", ")}) — no direct per-hit damage effect.</div>`
+        : "";
 
     return `
     <div class="dmg-calc-panel" style="margin-top:16px;background:#0f1320;border:1px solid #1e2535;border-radius:8px;padding:14px 16px">
@@ -952,21 +1008,27 @@ function renderDamageCalcPanel(nikke, totals) {
       ${lineRows}
       ${nonDmgNote}
       <div style="margin-top:10px;font-size:11px;color:#334155;border-top:1px solid #1e2535;padding-top:8px">
-        Assumes: ${hasElement ? 'Element advantage' : 'No element'} · Core hit · Full burst · Base ATK 25k · DEF 5k · 15% CR / 50% CD${isChargeWeapon ? ' · Charge weapon (1.5× base)' : ''}
+        Assumes: ${hasElement ? "Element advantage" : "No element"} · Core hit · Full burst · Base ATK 25k · DEF 5k · 15% CR / 50% CD${isChargeWeapon ? " · Charge weapon (1.5× base)" : ""}
       </div>
     </div>`;
 }
 
 function getStatColor(stat) {
     switch (stat) {
-        case 'ATK': return '#f87171';
-        case 'Elemental Dmg':
-        case 'Elemental Damage': return '#60a5fa';
-        case 'Critical Rate': return '#fbbf24';
-        case 'Critical Dmg':
-        case 'Critical Damage': return '#fb923c';
-        case 'Charge Dmg':
-        case 'Charge Damage': return '#a78bfa';
-        default: return '#94a3b8';
+        case "ATK":
+            return "#f87171";
+        case "Elemental Dmg":
+        case "Elemental Damage":
+            return "#60a5fa";
+        case "Critical Rate":
+            return "#fbbf24";
+        case "Critical Dmg":
+        case "Critical Damage":
+            return "#fb923c";
+        case "Charge Dmg":
+        case "Charge Damage":
+            return "#a78bfa";
+        default:
+            return "#94a3b8";
     }
 }

@@ -107,9 +107,12 @@ body {
     gap: 4px;
     flex: 1;
     min-height: 0;
-    max-height: calc(100vh - 280px);
     overflow-y: auto;
     overflow-x: hidden;
+}
+.nikke-list-collapsible .nikke-list,
+.roster-list-collapsible .nikke-list {
+    margin-top: 6px;
 }
 .nikke-list::-webkit-scrollbar {
     width: 6px;
@@ -129,6 +132,12 @@ body {
     flex-direction: column;
     gap: 6px;
     height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    background: #111827;
+    border: 1px solid #1e2535;
+    border-radius: 10px;
+    padding: 10px;
 }
 .nikke-item {
     padding: 8px 11px;
@@ -151,6 +160,48 @@ body {
     color: #64748b;
     margin-top: 2px;
     font-weight: 400;
+}
+
+/* ── Desktop: cap the left sidebar to the main panel's height ──
+   By default the grid row sizes to the taller column, so a long Nikke/roster
+   list stretches the row well past the main content (the Damage Impact card on
+   Nikkes, the lowest team lane on Teams). Taking the sidebar out of flow leaves
+   only the main panel driving the row height; the sidebar then fills that height
+   and its list scrolls internally instead of overrunning it.
+   Scoped to .nikke-sidebar so the Solo Raids screen (which puts .nikke-list
+   directly in the grid) is unaffected, and to ≥769px so mobile is untouched. */
+@media (min-width: 769px) {
+    .two-col {
+        position: relative;
+        /* Floor so the sidebar can't shrink below its controls when the main
+           panel is short (e.g. the "← Select…" empty state). ~286px is the
+           expanded New Roster menu (Teams); 320px clears it and shows a little
+           list. A Nikke/roster is normally selected, so the main panel is far
+           taller than this and the floor has no effect — it only matters on the
+           empty state, where there's no main content to overrun. */
+        min-height: 320px;
+    }
+    /* Nikkes has a full filter stack on top of the list, and its "+ Add Nikke"
+       form is much taller (~598px filters + expanded form). A selected Nikke's
+       panel is always ~1600px+, so this larger floor only ever applies on the
+       empty state — giving the expanded Add form room instead of clipping it. */
+    #gear .two-col {
+        min-height: 640px;
+    }
+    .two-col > .nikke-sidebar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 210px;
+        height: auto;
+    }
+    /* The out-of-flow sidebar no longer claims the first grid cell, so pin the
+       main panel to column 2 (it would otherwise auto-place into the 210px col). */
+    .two-col > #gear-main,
+    .two-col > #team-main {
+        grid-column: 2;
+    }
 }
 
 /* ── Roster ── */
@@ -251,7 +302,8 @@ body {
 }
 
 /* ── Delete confirm ── */
-.del-btn, .edit-btn {
+.del-btn,
+.edit-btn {
     font-size: 14px;
     background: none;
     border: none;
@@ -337,7 +389,8 @@ body {
 .edit-inline .edit-row-name input {
     flex: 1;
 }
-.edit-inline input, .edit-inline select {
+.edit-inline input,
+.edit-inline select {
     background: #0d1117;
     border: 1px solid #2d3f5e;
     border-radius: 4px;
@@ -1207,6 +1260,16 @@ details[open] > .verdict-title {
     border-radius: 6px;
     color: #e2e8f0;
 }
+/* Required-field validation nudge (e.g. New Roster "Add" with nothing filled):
+   red outline + glow that stays until the field is filled, plus a one-off shake. */
+.input-error {
+    border-color: #fbbf24 !important;
+}
+/* Suppress the browser's default (white) focus ring so the yellow border stays
+   the sole indicator when the flagged field is focused. */
+.input-error:focus {
+    outline: none;
+}
 /* Hide native OS dropdown arrow and replace with a consistent chevron */
 .app select:not([size]) {
     appearance: none;
@@ -1239,6 +1302,17 @@ details[open] > .verdict-title {
 .btn-primary:hover {
     background: #2563eb;
 }
+/* New Roster "Add" button — muted blue to match the rec/max + mode toggles */
+.btn-roster-add {
+    background: #1e3a5f;
+    color: #60a5fa;
+    border-color: #1e3a5f;
+    font-weight: 600;
+}
+.btn-roster-add:hover {
+    background: #25496f;
+    color: #93c5fd;
+}
 .btn-row {
     display: flex;
     gap: 8px;
@@ -1250,6 +1324,7 @@ details[open] > .verdict-title {
     align-items: center;
     gap: 9px;
     margin-bottom: 12px;
+    padding-left: 9px;
 }
 .avatar {
     width: 34px;
@@ -1346,7 +1421,9 @@ details[open] > .verdict-title {
     background: transparent;
     color: #64748b;
     cursor: pointer;
-    transition: background 0.1s, color 0.1s;
+    transition:
+        background 0.1s,
+        color 0.1s;
     line-height: 1.4;
 }
 .seg-toggle button + button {
@@ -1639,8 +1716,11 @@ details[open] > .verdict-title {
 .raid-slot-picker-overlay {
     display: none;
     position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.6);
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
     z-index: 1000;
     align-items: center;
     justify-content: center;
@@ -1870,7 +1950,7 @@ details[open] > .verdict-title {
     }
     .topbar-actions {
         width: 100%;
-        justify-content: flex-end;
+        justify-content: flex-start;
         flex-wrap: wrap;
     }
 
@@ -2061,7 +2141,6 @@ details[open] > .verdict-title {
     .add-nikke-btn {
         width: 100%;
     }
-
 }
 
 /* ── Cubes table: Equipped By wraps below on mobile ── */
@@ -2353,11 +2432,23 @@ details[open] > .verdict-title {
     gap: 12px;
     flex-wrap: wrap;
     margin-bottom: 12px;
+    padding-left: 9px;
 }
 .team-raid-title {
-    font-size: 16px;
-    font-weight: 600;
+    font-size: 25px;
+    font-weight: 700;
     color: #f1f5f9;
+}
+.team-raid-title-input {
+    font-size: 25px;
+    font-weight: 700;
+    color: #f1f5f9;
+    background: #0f172a;
+    border: 1px solid #3b82f6;
+    border-radius: 4px;
+    padding: 1px 8px;
+    outline: none;
+    min-width: 200px;
 }
 .team-view-toggle {
     display: inline-flex;
@@ -2386,7 +2477,7 @@ details[open] > .verdict-title {
     gap: 9px;
 }
 .team-lane {
-    background: #151c2b;
+    background: #0f1320;
     border: 1px solid #1e2535;
     border-radius: 8px;
     padding: 8px;
@@ -2428,17 +2519,19 @@ details[open] > .verdict-title {
 }
 .team-slot {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 8px;
-    padding: 8px;
+    justify-content: flex-start;
+    gap: 5px;
+    padding: 8px 6px;
     position: relative;
     background: #1a2235;
     border: 1px solid #2d3f5e;
     border-radius: 8px;
     color: #e2e8f0;
-    min-height: 62px;
     min-width: 0;
     overflow: hidden;
+    text-align: center;
 }
 .team-slot-empty {
     border-style: dashed;
@@ -2447,8 +2540,9 @@ details[open] > .verdict-title {
     cursor: pointer;
 }
 .team-slot-empty:hover {
-    border-color: #60a5fa;
-    background: #0f1a2e;
+    border-color: #3d5a80;
+    border-style: solid;
+    background: #1e2d45;
 }
 .team-slot-add-btn {
     width: 34px;
@@ -2464,8 +2558,9 @@ details[open] > .verdict-title {
     justify-content: center;
     transition: color 0.15s;
 }
+.team-slot-empty:hover .team-slot-add-btn,
 .team-slot-add-btn:hover {
-    color: #60a5fa;
+    color: #94a3b8;
 }
 .team-slot-filled {
     background: #1a2235;
@@ -2478,8 +2573,10 @@ details[open] > .verdict-title {
 .team-slot-info {
     display: flex;
     flex-direction: column;
+    align-items: center;
     gap: 2px;
     min-width: 0;
+    width: 100%;
 }
 .team-slot-name {
     font-size: 12.5px;
@@ -2488,10 +2585,12 @@ details[open] > .verdict-title {
     line-height: 1.2;
     overflow-wrap: break-word;
     word-break: break-word;
+    text-align: center;
 }
 .team-slot-dmg-row {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 3px;
 }
 .team-slot-dmg-input {
@@ -2504,6 +2603,7 @@ details[open] > .verdict-title {
     border-bottom: 1px solid #2d3748;
     border-radius: 0;
     color: #5d6779;
+    text-align: center;
     outline: none;
     font-family: inherit;
 }
@@ -2512,31 +2612,8 @@ details[open] > .verdict-title {
 }
 .team-slot-dmg-suffix {
     font-size: 11px;
-    color: #475569;
+    color: #64748b;
     white-space: nowrap;
-}
-.team-slot-remove {
-    position: absolute;
-    top: 3px;
-    right: 3px;
-    width: 16px;
-    height: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #1e293b;
-    border: 1px solid #475569;
-    border-radius: 4px;
-    color: #94a3b8;
-    font-size: 14px;
-    font-weight: 700;
-    line-height: 1;
-    cursor: pointer;
-}
-.team-slot-remove:hover {
-    background: #7f1d1d;
-    border-color: #f87171;
-    color: #fca5a5;
 }
 .team-slot-picker-overlay {
     display: none;
@@ -2580,6 +2657,15 @@ details[open] > .verdict-title {
 .team-slot-picker-item:hover {
     background: #1e3a5f;
 }
+.team-slot-picker-remove {
+    color: #f87171;
+    border-bottom: 1px solid #1e2535;
+    margin-bottom: 4px;
+    padding-bottom: 8px;
+}
+.team-slot-picker-remove:hover {
+    background: #2d1515;
+}
 .team-readiness-list {
     display: flex;
     flex-direction: column;
@@ -2618,7 +2704,7 @@ details[open] > .verdict-title {
 .team-elem-warning {
     font-size: 12px;
     color: #fbbf24;
-    padding: 3px 6px;
+    padding: 2px 4px;
     display: flex;
     align-items: center;
     gap: 4px;
@@ -2636,25 +2722,33 @@ details[open] > .verdict-title {
     gap: 6px;
     font-size: 14px;
     padding: 6px 14px;
-    border: none;
-    background: none;
-    color: #64748b;
+    border: 1px solid #2a3448;
+    background: #1a2130;
+    color: #94a3b8;
     cursor: pointer;
+    border-radius: 6px 6px 0 0;
     border-bottom: 2px solid transparent;
     margin-bottom: -1px;
     white-space: nowrap;
-    transition: color 0.15s;
+    transition:
+        color 0.15s,
+        background 0.15s;
 }
 .team-gap-chip:hover {
-    color: #94a3b8;
+    color: #f1f5f9;
+    background: #1e2840;
 }
 .team-gap-chip.active {
     color: #f1f5f9;
     font-weight: 500;
+    background: #1e2840;
+    border-color: #2a3448;
     border-bottom: 2px solid #3b82f6;
 }
 .team-gap-chip.empty {
     color: #3a4455;
+    background: #131a26;
+    border-color: #1e2535;
     cursor: default;
 }
 .team-gap-count {
@@ -2715,15 +2809,29 @@ details[open] > .verdict-title {
     border: 1px solid #2d3f5e;
     border-radius: 6px;
     cursor: pointer;
-    background: #11151d;
-    color: #8b96a8;
+    background: transparent;
+    color: #64748b;
     text-align: center;
+    transition:
+        background 0.1s,
+        color 0.1s;
 }
 .roster-mode-toggle button.active {
-    background: #3b82f6;
-    color: #0a0c12;
+    background: #1e3a5f;
+    color: #60a5fa;
     font-weight: 600;
-    border-color: #3b82f6;
+    border-color: #1e3a5f;
+}
+.roster-mode-toggle button:hover:not(.active) {
+    background: #1a2235;
+    color: #94a3b8;
+}
+
+/* Collapsible roster-list header (Teams tab).
+   Hidden on desktop — the list is always visible in the side column there. The
+   mobile rules below reveal it and let it collapse the list to save space. */
+.roster-list-toggle {
+    display: none;
 }
 
 /* Campaign per-team delete button (Teams tab) */
@@ -2745,13 +2853,9 @@ details[open] > .verdict-title {
 /* Roster mode label shown next to the roster name (Teams tab) */
 .roster-mode-badge {
     font-size: 12px;
-    font-weight: 600;
-    color: #8b96a8;
-    background: #11151d;
-    border: 1px solid #2d3f5e;
-    border-radius: 6px;
-    padding: 2px 8px;
-    margin-left: 6px;
+    font-weight: 400;
+    color: #94a3b8;
+    margin-left: 4px;
     vertical-align: middle;
 }
 
@@ -2765,17 +2869,63 @@ details[open] > .verdict-title {
         grid-template-columns: repeat(3, 1fr);
     }
 
-    /* Readiness category tabs (Gear/Skills/Dolls/Bond): scroll sideways rather
-       than overflow the lane on narrow widths. */
+    /* Collapsible roster list: show the tappable header and let it hide the list. */
+    .roster-list-toggle {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        font-family: inherit;
+        font-size: 14px;
+        font-weight: 600;
+        color: #cbd5e1;
+        background: #11151d;
+        border: 1px solid #2d3f5e;
+        border-radius: 6px;
+        padding: 8px 12px;
+        cursor: pointer;
+    }
+    .roster-list-chevron {
+        font-size: 16px;
+        color: #64748b;
+        transition: transform 0.15s;
+        transform: rotate(90deg);
+        transform-origin: center center;
+        display: inline-block;
+        line-height: 1;
+    }
+    .roster-list-count {
+        margin-left: auto;
+        font-size: 12px;
+        font-weight: 400;
+        color: #64748b;
+        background: #0f1117;
+        border: 1px solid #2d3f5e;
+        border-radius: 10px;
+        padding: 1px 8px;
+    }
+    /* Collapsed state: rotate the chevron to point right and hide the list. */
+    .nikke-sidebar.roster-collapsed .roster-list-chevron {
+        transform: rotate(0deg);
+    }
+    .nikke-sidebar.roster-collapsed .roster-list-collapsible {
+        display: none;
+    }
+    /* Collapsible Nikke list (Nikkes tab) — same visual as roster-collapsed. */
+    .nikke-sidebar.nikke-list-collapsed .roster-list-chevron {
+        transform: rotate(0deg);
+    }
+    .nikke-sidebar.nikke-list-collapsed .nikke-list-collapsible {
+        display: none;
+    }
+
     .team-gap-chips {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        gap: 0;
+        flex-wrap: wrap;
+        gap: 2px;
     }
     .team-gap-chip {
         padding: 6px 11px;
         font-size: 13px;
-        flex-shrink: 0;
     }
 
     /* A gap detail can be long ("3 slots · Head, Body, Arm") — let the name
@@ -2797,7 +2947,7 @@ details[open] > .verdict-title {
     }
     .team-slot {
         padding: 6px;
-        gap: 6px;
+        gap: 4px;
     }
     .team-slot-empty .team-slot-add-btn {
         width: 28px;

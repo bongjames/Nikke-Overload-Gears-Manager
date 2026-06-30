@@ -18,6 +18,45 @@ function rosterTeamCount(raid) {
 }
 // Selected mode in the "New Roster" create form (reset each time the form opens).
 let _newRosterMode = "solo";
+// Whether the roster list is collapsed. Only has a visual effect on mobile
+// (≤768px) — on desktop the list is always shown via CSS. Auto-collapses when a
+// roster is selected so the team lanes take focus on small screens.
+let _rosterListCollapsed = false;
+function toggleRosterList() {
+    _rosterListCollapsed = !_rosterListCollapsed;
+    const sb = document.querySelector("#teams .nikke-sidebar");
+    if (!sb) return;
+    sb.classList.toggle("roster-collapsed", _rosterListCollapsed);
+    const tog = sb.querySelector(".roster-list-toggle");
+    if (tog) tog.setAttribute("aria-expanded", String(!_rosterListCollapsed));
+}
+// Clear the "missing required field" highlight (and its self-removing listeners)
+// from a New Roster form field.
+function clearRosterFieldError(el) {
+    if (!el) return;
+    el.classList.remove("input-error");
+    if (el._rosterErrClear) {
+        el.removeEventListener("input", el._rosterErrClear);
+        el.removeEventListener("change", el._rosterErrClear);
+        el._rosterErrClear = null;
+    }
+}
+// Flag a required New Roster field the user left blank: red highlight, focus it,
+// and auto-clear the highlight as soon as they fill it in.
+function flagRosterFieldError(el) {
+    if (!el) return;
+    el.classList.add("input-error");
+    el.focus();
+    if (el._rosterErrClear) {
+        el.removeEventListener("input", el._rosterErrClear);
+        el.removeEventListener("change", el._rosterErrClear);
+    }
+    const clear = () => clearRosterFieldError(el);
+    el._rosterErrClear = clear;
+    el.addEventListener("input", clear);
+    el.addEventListener("change", clear);
+}
+
 function setNewRosterMode(mode) {
     _newRosterMode = mode;
     const wrap = document.getElementById("new-roster-mode");
@@ -28,8 +67,10 @@ function setNewRosterMode(mode) {
     if (nameRow) nameRow.style.display = mode === "solo" ? "none" : "";
     const bossSelect = document.getElementById("solo-boss-select");
     if (bossSelect) bossSelect.value = "";
+    // Switching mode is a fresh start — drop any stale validation highlights.
+    clearRosterFieldError(document.getElementById("solo-boss-select"));
+    clearRosterFieldError(document.getElementById("team-raid-name-input"));
 }
-
 
 function renderTeams() {
     const el = document.getElementById("teams");
@@ -44,29 +85,38 @@ function renderTeams() {
       <div class="nikke-item-sub">${modeLabel}</div>
     </div>`;
             })
-            .join("") || '<div style="font-size:14px;color:#475569;padding:6px">No raids created</div>';
+            .join("") || '<div style="font-size:14px;color:#475569;padding:6px">No rosters created</div>';
 
     el.innerHTML = `<div class="two-col">
-    <div class="nikke-list">
-      ${raidList}
-      <button class="add-line-btn" onclick="showAddTeamRaidForm()" style="margin-top:8px">+ New Roster</button>
-      <div id="add-team-raid-form" class="form-panel" style="max-width:220px">
-        <div class="form-row" id="new-roster-name-row" style="display:none"><input class="form-input" id="team-raid-name-input" placeholder="Roster name"/></div>
-        <div class="form-row" id="solo-boss-row">
-          <select class="form-input" id="solo-boss-select">
-            <option value="">Select boss</option>
-            ${SOLO_RAID_BOSSES.map((b) => `<option value="${b.season}">S${b.season} · ${b.name}</option>`).join("")}
-          </select>
+    <div class="nikke-sidebar${_rosterListCollapsed ? " roster-collapsed" : ""}">
+      <button type="button" class="roster-list-toggle" onclick="toggleRosterList()" aria-expanded="${!_rosterListCollapsed}">
+        <span class="roster-list-chevron">›</span>
+        <span>Rosters</span>
+        <span class="roster-list-count">${state.teamRaids.length}</span>
+      </button>
+      <div class="roster-list-collapsible">
+        <button class="add-line-btn" onclick="showAddTeamRaidForm()" style="width:100%">+ New Roster</button>
+        <div id="add-team-raid-form" class="form-panel" style="max-width:100%">
+          <div class="form-row" id="new-roster-name-row" style="display:none"><input class="form-input" id="team-raid-name-input" placeholder="Roster name"/></div>
+          <div class="form-row" id="solo-boss-row">
+            <select class="form-input" id="solo-boss-select">
+              <option value="">Select boss</option>
+              ${SOLO_RAID_BOSSES.map((b) => `<option value="${b.season}">S${b.season} · ${b.name}</option>`).join("")}
+            </select>
+          </div>
+          <div class="form-row"><div class="roster-mode-toggle" id="new-roster-mode">
+            <button type="button" class="active" data-mode="solo" onclick="setNewRosterMode('solo')">Solo Raid</button>
+            <button type="button" data-mode="union" onclick="setNewRosterMode('union')">Union Raid</button>
+            <button type="button" data-mode="campaign" onclick="setNewRosterMode('campaign')">Campaign</button>
+          </div></div>
+          <div class="btn-row"><button class="btn" onclick="hideAddTeamRaidForm()" style="font-size:13px;padding:4px 10px">Cancel</button><button class="btn btn-roster-add" onclick="addTeamRaid()" style="font-size:13px;padding:4px 10px">Add</button></div>
         </div>
-        <div class="form-row"><div class="roster-mode-toggle" id="new-roster-mode">
-          <button type="button" class="active" data-mode="solo" onclick="setNewRosterMode('solo')">Solo Raid</button>
-          <button type="button" data-mode="union" onclick="setNewRosterMode('union')">Union Raid</button>
-          <button type="button" data-mode="campaign" onclick="setNewRosterMode('campaign')">Campaign</button>
-        </div></div>
-        <div class="btn-row"><button class="btn btn-primary" onclick="addTeamRaid()" style="font-size:13px;padding:4px 10px">Add</button></div>
+        <div class="nikke-list">
+          ${raidList}
+        </div>
       </div>
     </div>
-    <div id="team-main">${state.selTeamRaid ? "" : '<div class="empty-state">← Select or create a raid</div>'}</div>
+    <div id="team-main">${state.selTeamRaid ? "" : '<div class="empty-state">← Select or create a roster</div>'}</div>
   </div>`;
 
     if (state.selTeamRaid) {
@@ -79,36 +129,62 @@ function renderTeams() {
 function selTeamRaid(id) {
     state.selTeamRaid = id;
     state.teamRaidGap = null;
+    _rosterListCollapsed = true; // mobile: hide the list so the picked roster's lanes show
     renderTeams();
 }
 
 function showAddTeamRaidForm() {
     const f = document.getElementById("add-team-raid-form");
-    if (f) f.classList.add("show");
+    if (!f) return;
+    if (f.classList.contains("show")) {
+        hideAddTeamRaidForm();
+        return;
+    }
+    f.classList.add("show");
     setNewRosterMode("solo");
     const nameInput = document.getElementById("team-raid-name-input");
     if (nameInput) nameInput.value = "";
 }
 
+function hideAddTeamRaidForm() {
+    const f = document.getElementById("add-team-raid-form");
+    if (f) f.classList.remove("show");
+    // drop any validation highlights left on the form's fields
+    clearRosterFieldError(document.getElementById("solo-boss-select"));
+    clearRosterFieldError(document.getElementById("team-raid-name-input"));
+}
+
 function addTeamRaid() {
     const mode = _newRosterMode || "solo";
-    let name = "", bossSeason = null;
+    let name = "",
+        bossSeason = null;
     if (mode === "solo") {
         const bossSel = document.getElementById("solo-boss-select");
-        if (!bossSel || !bossSel.value) return;
+        if (!bossSel || !bossSel.value) {
+            flagRosterFieldError(bossSel);
+            return;
+        }
         const season = parseInt(bossSel.value);
         const boss = SOLO_RAID_BOSSES.find((b) => b.season === season);
-        if (!boss) return;
+        if (!boss) {
+            flagRosterFieldError(bossSel);
+            return;
+        }
         name = `S${boss.season} · ${boss.name}`;
         bossSeason = season;
     } else {
-        name = (document.getElementById("team-raid-name-input")?.value || "").trim();
-        if (!name) return;
+        const nameInput = document.getElementById("team-raid-name-input");
+        name = (nameInput?.value || "").trim();
+        if (!name) {
+            flagRosterFieldError(nameInput);
+            return;
+        }
     }
     const teamCount = TEAM_MODES[mode] ? TEAM_MODES[mode].teams : 5;
     const raid = { id: "tr" + Date.now(), name, mode, teamCount, entries: [], teamNames: {}, bossSeason };
     state.teamRaids.push(raid);
     state.selTeamRaid = raid.id;
+    _rosterListCollapsed = true; // mobile: focus the newly created roster's lanes
     save();
     renderTeams();
 }
@@ -116,7 +192,10 @@ function addTeamRaid() {
 function deleteTeamRaid(id) {
     if (!confirm("Delete this raid?")) return;
     state.teamRaids = state.teamRaids.filter((r) => r.id !== id);
-    if (state.selTeamRaid === id) state.selTeamRaid = null;
+    if (state.selTeamRaid === id) {
+        state.selTeamRaid = null;
+        _rosterListCollapsed = false; // mobile: re-open the list so another can be picked
+    }
     save();
     renderTeams();
 }
@@ -159,27 +238,68 @@ function setTeamRaidView(mode) {
     if (raid) renderTeamRaidMain(raid);
 }
 
-function showEditTeamRaid() {
-    const form = document.getElementById("team-raid-edit-form");
-    if (form) form.style.display = "";
-}
-function hideEditTeamRaid() {
-    const form = document.getElementById("team-raid-edit-form");
-    if (form) form.style.display = "none";
-}
-function saveEditTeamRaid(id) {
-    const raid = state.teamRaids.find((r) => r.id === id);
+function startEditRaidName(raidId) {
+    const span = document.getElementById("raid-title-" + raidId);
+    if (!span) return;
+    const raid = state.teamRaids.find((r) => r.id === raidId);
     if (!raid) return;
     if (raid.mode === "solo") {
-        const sel = document.getElementById("team-raid-edit-boss");
-        if (sel && sel.value) {
-            const season = parseInt(sel.value);
-            const boss = SOLO_RAID_BOSSES.find((b) => b.season === season);
-            if (boss) { raid.bossSeason = season; raid.name = `S${boss.season} · ${boss.name}`; }
+        const select = document.createElement("select");
+        select.className = "team-raid-title-input";
+        select.style.fontSize = "15px";
+        SOLO_RAID_BOSSES.forEach((b) => {
+            const opt = document.createElement("option");
+            opt.value = b.season;
+            opt.textContent = `S${b.season} · ${b.name}`;
+            opt.selected = raid.bossSeason === b.season;
+            select.appendChild(opt);
+        });
+        select.onblur = () => commitRaidName(select, raidId);
+        select.onkeydown = (e) => {
+            if (e.key === "Enter") select.blur();
+            if (e.key === "Escape") {
+                select.dataset.cancel = "1";
+                select.blur();
+            }
+        };
+        span.replaceWith(select);
+        select.focus();
+    } else {
+        const input = document.createElement("input");
+        input.className = "team-raid-title-input";
+        input.type = "text";
+        input.value = raid.name;
+        input.onblur = () => commitRaidName(input, raidId);
+        input.onkeydown = (e) => {
+            if (e.key === "Enter") input.blur();
+            if (e.key === "Escape") {
+                input.dataset.cancel = "1";
+                input.blur();
+            }
+        };
+        span.replaceWith(input);
+        input.focus();
+        input.select();
+    }
+}
+
+function commitRaidName(input, raidId) {
+    const raid = state.teamRaids.find((r) => r.id === raidId);
+    if (!raid) return;
+    if (input.dataset.cancel === "1") {
+        renderTeamRaidMain(raid);
+        return;
+    }
+    if (raid.mode === "solo") {
+        const season = parseInt(input.value);
+        const boss = SOLO_RAID_BOSSES.find((b) => b.season === season);
+        if (boss) {
+            raid.bossSeason = season;
+            raid.name = `S${boss.season} · ${boss.name}`;
         }
     } else {
-        const name = (document.getElementById("team-raid-edit-name")?.value || "").trim();
-        if (name) raid.name = name;
+        const val = input.value.trim();
+        if (val) raid.name = val;
     }
     save();
     renderTeams();
@@ -190,38 +310,28 @@ function renderTeamRaidMain(raid) {
     const area = document.getElementById("team-main");
     if (!area) return;
     const modeLabel = TEAM_MODES[raid.mode] ? TEAM_MODES[raid.mode].label : "Solo Raid";
-    const boss = (raid.mode === "solo" && raid.bossSeason != null)
-        ? SOLO_RAID_BOSSES.find((b) => b.season === raid.bossSeason) : null;
-    const weaknessHtml = boss ? ` ${elemIcon(boss.weakness, 22)} <span style="font-size:12px;color:#94a3b8">Weak</span>` : "";
-    const raidDisplayName = `${raid.name}${weaknessHtml} <span class="roster-mode-badge">${modeLabel}</span>`;
+    const boss =
+        raid.mode === "solo" && raid.bossSeason != null
+            ? SOLO_RAID_BOSSES.find((b) => b.season === raid.bossSeason)
+            : null;
+    const weaknessHtml = boss ? ` · ${elemIcon(boss.weakness, 16)} ${boss.weakness} Weak` : "";
+    const raidSubtitle = `<div style="font-size:16px;color:#94a3b8;margin-top:3px;line-height:1.3;display:flex;align-items:center;gap:4px">${modeLabel}${weaknessHtml}</div>`;
     const totalDmg = raid.entries.reduce((s, e) => s + (e.damage || 0), 0);
 
     const bodyHtml = renderTeamSlots(raid);
 
     area.innerHTML = `
     <div class="team-main-header">
-      <div style="display:flex;align-items:center;gap:8px">
-        <span class="team-raid-title">${raidDisplayName}</span>
-        <button class="btn-sm" onclick="showEditTeamRaid()" title="Edit raid" style="font-size:12px;padding:2px 6px;min-width:auto">✎</button>
+      <div style="display:flex;align-items:flex-start;gap:8px">
+        <div>
+          <span class="team-raid-title" id="raid-title-${raid.id}">${raid.name}</span>
+          ${raidSubtitle}
+        </div>
+        <button class="btn-sm" onclick="startEditRaidName('${raid.id}')" title="Edit raid" style="font-size:12px;padding:2px 6px;min-width:auto;margin-top:4px">✎</button>
       </div>
       <div style="display:flex;align-items:center;gap:12px">
         <span style="font-size:13px;color:#64748b">Total <strong style="color:#f1f5f9">${totalDmg ? totalDmg.toLocaleString() + "M" : "—"}</strong></span>
         <button class="del-btn" onclick="deleteTeamRaid('${raid.id}')" title="Delete raid">✕ Delete</button>
-      </div>
-    </div>
-    <div id="team-raid-edit-form" style="display:none;margin-bottom:10px;padding:10px;background:#151c2b;border:1px solid #1e2535;border-radius:8px">
-      <div style="display:flex;gap:6px;align-items:flex-start">
-        ${raid.mode === "solo"
-            ? `<select class="form-input" id="team-raid-edit-boss" style="flex:1;font-size:14px;padding:4px 8px">
-                <option value="">Select boss</option>
-                ${SOLO_RAID_BOSSES.map((b) => `<option value="${b.season}"${raid.bossSeason === b.season ? " selected" : ""}>S${b.season} · ${b.name}</option>`).join("")}
-               </select>`
-            : `<input class="form-input" id="team-raid-edit-name" value="${raid.name.replace(/"/g, "&quot;")}" placeholder="Roster name" style="flex:1;font-size:14px;padding:4px 8px"/>`
-        }
-        <div style="display:flex;gap:4px;padding-top:1px">
-          <button class="btn btn-primary" onclick="saveEditTeamRaid('${raid.id}')" style="font-size:13px;padding:4px 10px">Save</button>
-          <button class="btn-sm" onclick="hideEditTeamRaid()" style="font-size:13px;padding:4px 8px">Cancel</button>
-        </div>
       </div>
     </div>
     ${bodyHtml}`;
@@ -261,17 +371,21 @@ function _buildTeamLaneHtml(raid, tnum, members, total, maxTeam, maxEntry, isCam
         if (_ewBoss && _ewBoss.weakness) {
             const _ewNikkes = members.map((e) => state.nikkes.find((x) => x.id === e.nikkeId)).filter(Boolean);
             if (_ewNikkes.length > 0 && !_ewNikkes.some((n) => n.element === _ewBoss.weakness)) {
-                elemWarningHtml = `<div class="team-elem-warning">⚠ No ${elemIcon(_ewBoss.weakness)} ${_ewBoss.weakness} · Boss Weak</div>`;
+                elemWarningHtml = `<div class="team-elem-warning">⚠ Missing ${elemIcon(_ewBoss.weakness)}</div>`;
             }
         }
     }
     let burstWarningHtml = "";
     const _bwNikkes = members.map((e) => state.nikkes.find((x) => x.id === e.nikkeId)).filter(Boolean);
     if (_bwNikkes.length === 5) {
-        const getBurstCat = (n) => (n.burst1 && n.burst2 && n.burst3) || n.burst3 ? 3 : n.burst2 ? 2 : n.burst1 ? 1 : null;
-        const b1 = _bwNikkes.filter((n) => getBurstCat(n) === 1).length;
+        const getBurstCat = (n) =>
+            (n.burst1 && n.burst2 && n.burst3) || n.burst3 ? 3 : n.burst2 ? 2 : n.burst1 ? 1 : null;
+        const rapiRH = _bwNikkes.find((n) => n.name === "Rapi: Red Hood");
+        const nonRRHB1 = _bwNikkes.filter((n) => n !== rapiRH && getBurstCat(n) === 1).length;
+        const rapiRHCountsAsB1 = rapiRH != null && nonRRHB1 === 0;
+        const b1 = _bwNikkes.filter((n) => (n === rapiRH ? rapiRHCountsAsB1 : getBurstCat(n) === 1)).length;
         const b2 = _bwNikkes.filter((n) => getBurstCat(n) === 2).length;
-        const b3 = _bwNikkes.filter((n) => getBurstCat(n) === 3).length;
+        const b3 = _bwNikkes.filter((n) => (n === rapiRH ? !rapiRHCountsAsB1 : getBurstCat(n) === 3)).length;
         const missing = [];
         if (b1 < 1) missing.push("Burst I");
         if (b2 < 1) missing.push("Burst II");
@@ -283,12 +397,11 @@ function _buildTeamLaneHtml(raid, tnum, members, total, maxTeam, maxEntry, isCam
     <div class="team-lane-header">
       <span class="team-label" id="team-name-${raid.id}-${tnum}">${getTeamName(raid, tnum)}</span>
       <button class="btn-sm" onclick="startEditTeamName('${raid.id}',${tnum})" title="Rename team" style="font-size:12px;padding:2px 6px;min-width:auto">✎</button>
-      <span class="team-total" style="color:${tColor}">${total ? total.toLocaleString() + "M" : ""}</span>
+      ${elemWarningHtml}${burstWarningHtml}
+      <span class="team-total" style="color:${tColor};margin-left:auto">${total ? total.toLocaleString() + "M" : ""}</span>
       ${delTeamBtn}
     </div>
     <div class="team-slots">${slots.join("")}</div>
-    ${elemWarningHtml}
-    ${burstWarningHtml}
     ${readinessHtml}
   </div>`;
 }
@@ -309,16 +422,30 @@ function renderTeamSlots(raid) {
 
 function _rerenderTeamLane(raid, tnum) {
     const el = document.getElementById(`team-lane-${raid.id}-${tnum}`);
-    if (!el) { renderTeamRaidMain(raid); return; }
+    if (!el) {
+        renderTeamRaidMain(raid);
+        return;
+    }
     const isCampaign = raid.mode === "campaign";
     const { teamNums, teams, teamTotals, maxTeam, maxEntry } = _raidLaneMetrics(raid);
     const ti = teamNums.indexOf(tnum);
-    el.outerHTML = _buildTeamLaneHtml(raid, tnum, teams[tnum] || [], teamTotals[ti] || 0, maxTeam, maxEntry, isCampaign);
+    el.outerHTML = _buildTeamLaneHtml(
+        raid,
+        tnum,
+        teams[tnum] || [],
+        teamTotals[ti] || 0,
+        maxTeam,
+        maxEntry,
+        isCampaign,
+    );
 }
 
 function _rerenderTeamReadiness(raid, tnum) {
     const el = document.getElementById(`team-readiness-${raid.id}-${tnum}`);
-    if (!el) { renderTeamRaidMain(raid); return; }
+    if (!el) {
+        renderTeamRaidMain(raid);
+        return;
+    }
     const members = raid.entries.map((e, i) => ({ ...e, origIdx: i })).filter((e) => e.team === tnum);
     el.outerHTML = renderTeamReadinessInline(raid, tnum, members);
 }
@@ -336,21 +463,30 @@ function renderTeamSlot(raid, teamNum, slotIdx, entry, maxEntry) {
     const burstNum = bd === "All" ? "All" : bd === "III" ? 3 : bd === "II" ? 2 : bd === "I" ? 1 : null;
     const burst = burstNum ? burstIcon(burstNum) : "";
     const pct = maxEntry > 0 ? ((entry.damage || 0) / maxEntry) * 100 : 0;
-    const dmgColor = !entry.damage ? "#5d6779" : pct >= 80 ? "#4ade80" : pct >= 50 ? "#60a5fa" : pct >= 25 ? "#fbbf24" : "#f87171";
-    return `<div class="team-slot team-slot-filled">
+    const dmgColor = !entry.damage
+        ? "#5d6779"
+        : pct >= 80
+          ? "#4ade80"
+          : pct >= 50
+            ? "#60a5fa"
+            : pct >= 25
+              ? "#fbbf24"
+              : "#f87171";
+    return `<div class="team-slot team-slot-filled" onclick="openTeamSlotPickerEdit('${raid.id}',${teamNum},${entry.origIdx})" title="Change Nikke">
       ${n ? nikkeIcon(name, 34) : ""}
       <div class="team-slot-info">
         <span class="team-slot-name">${name}</span>
-        ${(elem || burst) ? `<div style="display:flex;align-items:center;gap:2px;margin-top:1px">${elem}${burst}</div>` : ""}
+        ${elem || burst ? `<div style="display:flex;align-items:center;gap:2px;margin-top:1px">${elem}${burst}</div>` : ""}
         <div class="team-slot-dmg-row">
-          <input class="team-slot-dmg-input" type="text" inputmode="numeric" value="${entry.damage || ""}" placeholder="0" style="color:${dmgColor}"
+          <input class="team-slot-dmg-input" type="text" inputmode="numeric" value="${entry.damage || 0}" style="color:${dmgColor}"
                  onclick="event.stopPropagation()"
+                 onfocus="if(this.value==='0')this.value=''"
+                 oninput="this.value=this.value.replace(/[^0-9]/g,'')"
                  onblur="commitTeamDmgInput(this,'${raid.id}',${entry.origIdx})"
                  onkeydown="if(event.key==='Enter')this.blur();if(event.key==='Escape'){this.dataset.cancel='1';this.blur();}"/>
           <span class="team-slot-dmg-suffix">M Dmg</span>
         </div>
       </div>
-      <button class="team-slot-remove" onclick="event.stopPropagation();removeTeamSlot('${raid.id}',${entry.origIdx})" title="Remove">&times;</button>
     </div>`;
 }
 
@@ -368,10 +504,24 @@ function renderTeamSlotPickerOverlay() {
 }
 
 // ── Slot picker ──────────────────────────────────────────────
-let _teamSlotPickerState = { raidId: null, team: null, slot: null };
+let _teamSlotPickerState = { raidId: null, team: null, slot: null, entryIdx: null };
 
 function openTeamSlotPicker(raidId, teamNum, slotIdx) {
-    _teamSlotPickerState = { raidId, team: teamNum, slot: slotIdx };
+    _teamSlotPickerState = { raidId, team: teamNum, slot: slotIdx, entryIdx: null };
+    const overlay = document.getElementById("team-slot-picker-overlay");
+    if (overlay) {
+        overlay.classList.add("show");
+        const search = document.getElementById("team-slot-picker-search");
+        if (search) {
+            search.value = "";
+            search.focus();
+        }
+        filterTeamSlotPicker();
+    }
+}
+
+function openTeamSlotPickerEdit(raidId, teamNum, entryIdx) {
+    _teamSlotPickerState = { raidId, team: teamNum, slot: null, entryIdx };
     const overlay = document.getElementById("team-slot-picker-overlay");
     if (overlay) {
         overlay.classList.add("show");
@@ -387,7 +537,7 @@ function openTeamSlotPicker(raidId, teamNum, slotIdx) {
 function closeTeamSlotPicker() {
     const overlay = document.getElementById("team-slot-picker-overlay");
     if (overlay) overlay.classList.remove("show");
-    _teamSlotPickerState = { raidId: null, team: null, slot: null };
+    _teamSlotPickerState = { raidId: null, team: null, slot: null, entryIdx: null };
 }
 
 function filterTeamSlotPicker() {
@@ -395,17 +545,28 @@ function filterTeamSlotPicker() {
     const list = document.getElementById("team-slot-picker-list");
     if (!list) return;
     const q = search ? search.value.toLowerCase() : "";
-    const raid = state.teamRaids.find((r) => r.id === _teamSlotPickerState.raidId);
+    const { raidId, entryIdx } = _teamSlotPickerState;
+    const raid = state.teamRaids.find((r) => r.id === raidId);
     if (!raid) {
         list.innerHTML = "";
         return;
     }
+    const currentNikkeId = entryIdx != null ? raid.entries[entryIdx]?.nikkeId : null;
     const assignedIds = new Set(raid.entries.filter((e) => e.team && e.team > 0).map((e) => e.nikkeId));
+    if (currentNikkeId) assignedIds.delete(currentNikkeId);
     const available = state.nikkes
         .filter((n) => !assignedIds.has(n.id) && n.name.toLowerCase().includes(q))
         .sort((a, b) => a.name.localeCompare(b.name));
+    const removeBtn =
+        entryIdx != null
+            ? `<div class="team-slot-picker-item team-slot-picker-remove" onclick="removeTeamSlotFromPicker()">
+      <span style="font-size:16px;line-height:1">✕</span>
+      <span>Remove from team</span>
+    </div>`
+            : "";
     list.innerHTML =
-        available
+        removeBtn +
+        (available
             .map((n) => {
                 const elem = n.element ? elemIcon(n.element) : "";
                 return `<div class="team-slot-picker-item" onclick="pickTeamSlotNikke('${n.id}')">
@@ -414,14 +575,27 @@ function filterTeamSlotPicker() {
       <span style="font-size:12px;color:#64748b;margin-left:auto">${elem} ${burstDisplay(n)}</span>
     </div>`;
             })
-            .join("") || '<div style="padding:8px;color:#475569;font-size:13px">No available Nikkes</div>';
+            .join("") || '<div style="padding:8px;color:#475569;font-size:13px">No available Nikkes</div>');
+}
+
+function removeTeamSlotFromPicker() {
+    const { raidId, entryIdx } = _teamSlotPickerState;
+    closeTeamSlotPicker();
+    if (raidId != null && entryIdx != null) removeTeamSlot(raidId, entryIdx);
 }
 
 function pickTeamSlotNikke(nikkeId) {
-    const { raidId, team } = _teamSlotPickerState;
+    const { raidId, team, entryIdx } = _teamSlotPickerState;
     const raid = state.teamRaids.find((r) => r.id === raidId);
     if (!raid) return;
-    raid.entries.push({ nikkeId, damage: 0, team });
+    if (entryIdx != null) {
+        const existing = raid.entries[entryIdx];
+        if (existing) {
+            existing.nikkeId = nikkeId;
+        }
+    } else {
+        raid.entries.push({ nikkeId, damage: 0, team });
+    }
     save();
     closeTeamSlotPicker();
     _rerenderTeamLane(raid, team);
@@ -433,7 +607,8 @@ function removeTeamSlot(raidId, entryIdx) {
     const tnum = raid.entries[entryIdx]?.team;
     raid.entries.splice(entryIdx, 1);
     save();
-    if (tnum) _rerenderTeamLane(raid, tnum); else renderTeamRaidMain(raid);
+    if (tnum) _rerenderTeamLane(raid, tnum);
+    else renderTeamRaidMain(raid);
 }
 
 // ── Inline damage editing ────────────────────────────────────
@@ -472,11 +647,18 @@ function commitTeamDmg(input, raidId, entryIdx) {
 }
 
 function commitTeamDmgInput(input, raidId, entryIdx) {
-    if (input.dataset.cancel === "1") { input.dataset.cancel = ""; return; }
     const raid = state.teamRaids.find((r) => r.id === raidId);
+    if (input.dataset.cancel === "1") {
+        input.dataset.cancel = "";
+        input.value = (raid && raid.entries[entryIdx]?.damage) || 0;
+        return;
+    }
     if (!raid || !raid.entries[entryIdx]) return;
     const val = parseInt((input.value || "").replace(/[^0-9]/g, "")) || 0;
-    if (raid.entries[entryIdx].damage === val) return;
+    if (raid.entries[entryIdx].damage === val) {
+        input.value = val || 0;
+        return;
+    }
     raid.entries[entryIdx].damage = val;
     save();
     renderTeamRaidMain(raid);
@@ -499,7 +681,10 @@ function startEditTeamName(raidId, teamNum) {
     input.onblur = () => commitTeamName(input, raidId, teamNum);
     input.onkeydown = (event) => {
         if (event.key === "Enter") input.blur();
-        if (event.key === "Escape") { input.dataset.cancel = "1"; input.blur(); }
+        if (event.key === "Escape") {
+            input.dataset.cancel = "1";
+            input.blur();
+        }
     };
     span.replaceWith(input);
     input.focus();
@@ -509,10 +694,13 @@ function startEditTeamName(raidId, teamNum) {
 function commitTeamName(input, raidId, teamNum) {
     const raid = state.teamRaids.find((r) => r.id === raidId);
     if (!raid) return;
-    if (input.dataset.cancel === "1") { renderTeamRaidMain(raid); return; }
+    if (input.dataset.cancel === "1") {
+        renderTeamRaidMain(raid);
+        return;
+    }
     const val = input.value.trim();
     if (!raid.teamNames) raid.teamNames = {};
-    raid.teamNames[teamNum] = (val && val !== "Team " + teamNum) ? val : "";
+    raid.teamNames[teamNum] = val && val !== "Team " + teamNum ? val : "";
     save();
     renderTeamRaidMain(raid);
 }
@@ -526,8 +714,13 @@ function renderTeamReadinessInline(raid, tnum, members) {
         if (!n) return;
         const g = getTeamRaidGaps(n);
         const base = { nikkeId: n.id, name: n.name, elem: n.element ? elemIcon(n.element) : "" };
-        if (g.gearCount) details.gear.push({ ...base, detail: `${g.gearCount} slot${g.gearCount > 1 ? "s" : ""} · ${g.badSlots.join(", ")}` });
-        if (g.skillGaps.length) details.skills.push({ ...base, detail: g.skillGaps.map((s) => `${s.label} ${s.cur}→${s.rec}`).join(", ") });
+        if (g.gearCount)
+            details.gear.push({
+                ...base,
+                detail: `${g.gearCount} slot${g.gearCount > 1 ? "s" : ""} · ${g.badSlots.join(", ")}`,
+            });
+        if (g.skillGaps.length)
+            details.skills.push({ ...base, detail: g.skillGaps.map((s) => `${s.label} ${s.cur}→${s.rec}`).join(", ") });
         if (g.dollGap) details.dolls.push({ ...base, detail: `Needs ${g.dollLabel}` });
         if (g.bondGap) details.bond.push({ ...base, detail: g.bondDetail });
     });
@@ -538,7 +731,12 @@ function renderTeamReadinessInline(raid, tnum, members) {
         { key: "bond", label: "Bond" },
     ];
     const selKey = state.teamRaidGap || "";
-    const counts = { gear: details.gear.length, skills: details.skills.length, dolls: details.dolls.length, bond: details.bond.length };
+    const counts = {
+        gear: details.gear.length,
+        skills: details.skills.length,
+        dolls: details.dolls.length,
+        bond: details.bond.length,
+    };
     const chips = CATS.map((cd) => {
         const count = counts[cd.key];
         const active = selKey === tnum + ":" + cd.key;
@@ -553,11 +751,15 @@ function renderTeamReadinessInline(raid, tnum, members) {
         const catLabel = CATS.find((c) => c.key === showCat).label;
         listHtml = `<div class="team-gap-list">
           <div class="team-gap-list-label">${catLabel} · ${list.length} Nikke${list.length !== 1 ? "s" : ""} lacking</div>
-          ${list.map((m) => `<button class="team-gap-item" onclick="goToGearNikke('${m.nikkeId}')">
+          ${list
+              .map(
+                  (m) => `<button class="team-gap-item" onclick="goToGearNikke('${m.nikkeId}')">
             ${nikkeIcon(m.name, 28)}
             <span class="team-gap-item-name">${m.elem} ${m.name}</span>
             <span class="team-gap-item-detail">${m.detail}</span>
-          </button>`).join("")}
+          </button>`,
+              )
+              .join("")}
         </div>`;
     }
     return `<div id="team-readiness-${raid.id}-${tnum}"><div class="team-gap-chips">${chips}</div>${listHtml}</div>`;
@@ -652,13 +854,26 @@ function renderTeamReadiness(raid) {
                 if (!n) return;
                 const g = getTeamRaidGaps(n);
                 const base = { nikkeId: n.id, name: n.name, elem: n.element ? elemIcon(n.element) : "" };
-                if (g.gearCount) details.gear.push({ ...base, detail: `${g.gearCount} slot${g.gearCount > 1 ? "s" : ""} · ${g.badSlots.join(", ")}` });
-                if (g.skillGaps.length) details.skills.push({ ...base, detail: g.skillGaps.map((s) => `${s.label} ${s.cur}→${s.rec}`).join(", ") });
+                if (g.gearCount)
+                    details.gear.push({
+                        ...base,
+                        detail: `${g.gearCount} slot${g.gearCount > 1 ? "s" : ""} · ${g.badSlots.join(", ")}`,
+                    });
+                if (g.skillGaps.length)
+                    details.skills.push({
+                        ...base,
+                        detail: g.skillGaps.map((s) => `${s.label} ${s.cur}→${s.rec}`).join(", "),
+                    });
                 if (g.dollGap) details.dolls.push({ ...base, detail: `Needs ${g.dollLabel}` });
                 if (g.bondGap) details.bond.push({ ...base, detail: g.bondDetail });
             });
             const memberCount = members.length || 1;
-            const counts = { gear: details.gear.length, skills: details.skills.length, dolls: details.dolls.length, bond: details.bond.length };
+            const counts = {
+                gear: details.gear.length,
+                skills: details.skills.length,
+                dolls: details.dolls.length,
+                bond: details.bond.length,
+            };
             const totalGaps = counts.gear + counts.skills + counts.dolls + counts.bond;
             const ready = Math.max(0, Math.round(100 - (totalGaps / (memberCount * 4)) * 100));
             const rc = ready >= 75 ? "#4ade80" : ready >= 45 ? "#fbbf24" : "#f87171";
