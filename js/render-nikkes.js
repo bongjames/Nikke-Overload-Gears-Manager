@@ -409,7 +409,6 @@ function renderGearMain(nikke) {
     <div class="attr-summary">
       <div class="at-head">
         <span class="attr-summary-title">Attribute totals</span>
-        <span class="at-badge">summed across all 4 pieces</span>
       </div>
       <div class="at-colhead">
         <span>Stat</span><span>Lines</span><span>Total</span><span>Target</span><span>Status</span>

@@ -1,0 +1,23 @@
+#!/bin/sh
+# ------------------------------------------------------------
+# pre-commit hook: stamp knowledge/build-info.js and the index.html
+# cache-buster (?v=) tokens, then stage both so they're part of the
+# commit being made.
+#
+# NOTE: in a pre-commit hook HEAD is the *parent* of the commit being
+# made, so the stamped commit/cache token trails by one commit. That's
+# harmless -- the token still changes every commit, which is all the
+# cache-busting needs. (See scripts/stamp-version.ps1 header.)
+#
+# Installed via: powershell -File scripts/install-hooks.ps1
+# ------------------------------------------------------------
+
+repo_root=$(git rev-parse --show-toplevel)
+
+# Regenerate build-info.js + cache-bust index.html against HEAD
+powershell -ExecutionPolicy Bypass -NoProfile -File "$repo_root/scripts/stamp-version.ps1" >/dev/null 2>&1 || exit 0
+
+# Stage whatever the stamp changed so it lands in this commit
+git add knowledge/build-info.js index.html
+
+exit 0

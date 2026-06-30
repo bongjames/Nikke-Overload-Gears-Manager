@@ -365,6 +365,7 @@ function _buildTeamLaneHtml(raid, tnum, members, total, maxTeam, maxEntry, isCam
         isCampaign && tnum > 1
             ? `<button class="team-del-btn" onclick="deleteCampaignTeam('${raid.id}',${tnum})" title="Delete team">✕</button>`
             : "";
+    const teamWeakness = raid.mode === "union" ? getTeamWeakness(raid, tnum) : null;
     let elemWarningHtml = "";
     if (raid.mode === "solo" && raid.bossSeason != null) {
         const _ewBoss = SOLO_RAID_BOSSES.find((b) => b.season === raid.bossSeason);
@@ -373,6 +374,11 @@ function _buildTeamLaneHtml(raid, tnum, members, total, maxTeam, maxEntry, isCam
             if (_ewNikkes.length > 0 && !_ewNikkes.some((n) => n.element === _ewBoss.weakness)) {
                 elemWarningHtml = `<div class="team-elem-warning">⚠ Missing ${elemIcon(_ewBoss.weakness)}</div>`;
             }
+        }
+    } else if (raid.mode === "union" && teamWeakness) {
+        const _uwNikkes = members.map((e) => state.nikkes.find((x) => x.id === e.nikkeId)).filter(Boolean);
+        if (_uwNikkes.length > 0 && !_uwNikkes.some((n) => n.element === teamWeakness)) {
+            elemWarningHtml = `<div class="team-elem-warning">⚠ Missing ${elemIcon(teamWeakness)}</div>`;
         }
     }
     let burstWarningHtml = "";
@@ -386,17 +392,32 @@ function _buildTeamLaneHtml(raid, tnum, members, total, maxTeam, maxEntry, isCam
         const b1 = _bwNikkes.filter((n) => (n === rapiRH ? rapiRHCountsAsB1 : getBurstCat(n) === 1)).length;
         const b2 = _bwNikkes.filter((n) => getBurstCat(n) === 2).length;
         const b3 = _bwNikkes.filter((n) => (n === rapiRH ? !rapiRHCountsAsB1 : getBurstCat(n) === 3)).length;
+        // Re-enter Nikkes burst twice per rotation, so each one needs an extra
+        // teammate of the same burst stage to cover the slot it vacates — i.e. it
+        // raises that stage's required count by 1. Viper only re-enters once her
+        // SSR treasure ("First Phone and Phone Book") is equipped.
+        const isReEnter = (n) => {
+            const db = NIKKE_DB_MAP.get(n.name) || {};
+            if (!db.burstReEnter) return false;
+            if (n.name === "Viper") {
+                const doll = n.doll ? COLLECTION_DOLLS.find((d) => d.id === n.doll.tid) : null;
+                return doll != null && doll.treasure === "Viper" && doll.rarity === "SSR";
+            }
+            return true;
+        };
+        const reB1 = _bwNikkes.filter((n) => getBurstCat(n) === 1 && isReEnter(n)).length;
+        const reB2 = _bwNikkes.filter((n) => getBurstCat(n) === 2 && isReEnter(n)).length;
+        const reB3 = _bwNikkes.filter((n) => getBurstCat(n) === 3 && isReEnter(n)).length;
         const missing = [];
-        if (b1 < 1) missing.push("Burst I");
-        if (b2 < 1) missing.push("Burst II");
-        if (b3 < 2) missing.push("Burst III");
+        if (b1 < 1 + reB1) missing.push("Burst I");
+        if (b2 < 1 + reB2) missing.push("Burst II");
+        if (b3 < 2 + reB3) missing.push("Burst III");
         if (missing.length) burstWarningHtml = `<div class="team-elem-warning">⚠ Missing ${missing.join(" · ")}</div>`;
     }
     const readinessHtml = renderTeamReadinessInline(raid, tnum, members);
     return `<div class="team-lane" id="team-lane-${raid.id}-${tnum}">
     <div class="team-lane-header">
-      <span class="team-label" id="team-name-${raid.id}-${tnum}">${getTeamName(raid, tnum)}</span>
-      <button class="btn-sm" onclick="startEditTeamName('${raid.id}',${tnum})" title="Rename team" style="font-size:12px;padding:2px 6px;min-width:auto">✎</button>
+      <div class="team-name-group" id="team-name-group-${raid.id}-${tnum}">${renderTeamNameGroupStatic(raid, tnum)}</div>
       ${elemWarningHtml}${burstWarningHtml}
       <span class="team-total" style="color:${tColor};margin-left:auto">${total ? total.toLocaleString() + "M" : ""}</span>
       ${delTeamBtn}
@@ -669,40 +690,84 @@ function getTeamName(raid, teamNum) {
     return (raid.teamNames && raid.teamNames[teamNum]) || "Team " + teamNum;
 }
 
+function renderTeamNameGroupStatic(raid, tnum) {
+    const name = getTeamName(raid, tnum);
+    const weakness = raid.mode === "union" ? getTeamWeakness(raid, tnum) : null;
+    const weaknessBadge = weakness
+        ? ` <span class="team-weakness-badge"> · ${elemIcon(weakness, 16)} <span class="team-weakness-text">${weakness} Weak</span></span>`
+        : "";
+    return `<span class="team-label">${name}</span>${weaknessBadge}<button class="btn-sm" onclick="startEditTeamName('${raid.id}',${tnum})" title="Rename team" style="font-size:12px;padding:2px 6px;min-width:auto">✎</button>`;
+}
+
 function startEditTeamName(raidId, teamNum) {
-    const span = document.getElementById("team-name-" + raidId + "-" + teamNum);
-    if (!span) return;
+    const group = document.getElementById("team-name-group-" + raidId + "-" + teamNum);
+    if (!group || group.querySelector("input.team-label-input")) return;
     const raid = state.teamRaids.find((r) => r.id === raidId);
     if (!raid) return;
+
+    group.innerHTML = "";
+
     const input = document.createElement("input");
     input.className = "team-label-input";
     input.type = "text";
     input.value = getTeamName(raid, teamNum);
-    input.onblur = () => commitTeamName(input, raidId, teamNum);
-    input.onkeydown = (event) => {
-        if (event.key === "Enter") input.blur();
-        if (event.key === "Escape") {
-            input.dataset.cancel = "1";
-            input.blur();
+    group.appendChild(input);
+
+    let weaknessSelect = null;
+    if (raid.mode === "union") {
+        weaknessSelect = document.createElement("select");
+        weaknessSelect.className = "team-weakness-select";
+        weaknessSelect.appendChild(new Option("No Weakness", ""));
+        const cur = getTeamWeakness(raid, teamNum);
+        NIKKE_ELEMENTS.forEach((e) => {
+            const opt = new Option(e, e);
+            if (cur === e) opt.selected = true;
+            weaknessSelect.appendChild(opt);
+        });
+        group.appendChild(weaknessSelect);
+    }
+
+    let committed = false;
+    function doCommit(cancel) {
+        if (committed) return;
+        committed = true;
+        const r = state.teamRaids.find((x) => x.id === raidId);
+        if (!r) return;
+        if (!cancel) {
+            const val = input.value.trim();
+            if (!r.teamNames) r.teamNames = {};
+            r.teamNames[teamNum] = val && val !== "Team " + teamNum ? val : "";
+            if (r.mode === "union" && weaknessSelect) {
+                if (!r.teamWeakness) r.teamWeakness = {};
+                r.teamWeakness[teamNum] = weaknessSelect.value || null;
+            }
+            save();
+            _rerenderTeamLane(r, teamNum);
+        } else {
+            const g = document.getElementById("team-name-group-" + raidId + "-" + teamNum);
+            if (g) g.innerHTML = renderTeamNameGroupStatic(r, teamNum);
         }
-    };
-    span.replaceWith(input);
+    }
+
+    group.addEventListener("focusout", function onFocusOut(e) {
+        if (!group.contains(e.relatedTarget)) {
+            group.removeEventListener("focusout", onFocusOut);
+            doCommit(false);
+        }
+    });
+
+    input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") doCommit(false);
+        if (e.key === "Escape") doCommit(true);
+    });
+
     input.focus();
     input.select();
 }
 
-function commitTeamName(input, raidId, teamNum) {
-    const raid = state.teamRaids.find((r) => r.id === raidId);
-    if (!raid) return;
-    if (input.dataset.cancel === "1") {
-        renderTeamRaidMain(raid);
-        return;
-    }
-    const val = input.value.trim();
-    if (!raid.teamNames) raid.teamNames = {};
-    raid.teamNames[teamNum] = val && val !== "Team " + teamNum ? val : "";
-    save();
-    renderTeamRaidMain(raid);
+// ── Team element weakness (union raids) ─────────────────────
+function getTeamWeakness(raid, teamNum) {
+    return (raid.teamWeakness && raid.teamWeakness[teamNum]) || null;
 }
 
 // ── Inline readiness (rendered below each team's slots) ─────
